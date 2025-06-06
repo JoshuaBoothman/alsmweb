@@ -1,0 +1,36 @@
+/* Basic CSS Styling from our Project Plan  */
+
+body {
+    font-family: sans-serif; /* A simple, default font */
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4; /* A light grey background  */
+    color: #333; /* A dark grey for text  */
+}
+
+header {
+    background-color: #333; /* Dark background for the header  */
+    color: #fff; /* White text for the header  */
+    padding: 1rem 0;
+    text-align: center;
+}
+
+nav {
+    /* We'll style our navigation later */
+    padding: 1rem;
+    text-align: center;
+    background-color: #444;
+}
+
+main {
+    padding: 20px; /* Some space around our main content  */
+}
+
+footer {
+    text-align: center;
+    padding: 1rem 0;
+    background-color: #333; /* Dark background for the footer  */
+    color: #fff; /* White text for the footer  */
+    margin-top: 20px;
+}
