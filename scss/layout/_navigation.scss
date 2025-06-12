@@ -1,0 +1,18 @@
+@use '../abstracts/variables';
+nav {
+    // Note the nesting of selectors that match the HTML structure
+    ul {
+        padding: 0;
+        list-style: none;
+
+        li {
+            display: inline;
+            margin-right: 20px;
+        }
+    }
+
+    a {
+        color: variables.$light-text-color;
+        text-decoration: none;
+    }
+}

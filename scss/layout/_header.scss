@@ -1,0 +1,8 @@
+@use '../abstracts/variables';
+
+header {
+    background-color: variables.$primary-color;
+    color: variables.$light-text-color;
+    padding: 1rem 0;
+    text-align: center;
+}

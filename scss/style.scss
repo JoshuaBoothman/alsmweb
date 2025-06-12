@@ -1,0 +1,25 @@
+@use 'abstracts/variables';
+
+@use 'layout/header';
+@use 'layout/navigation';
+@use 'layout/footer';
+
+// Base styles can remain in the main file for now
+body {
+    font-family: variables.$font-stack;
+    line-height: variables.$line-height;
+    margin: 0;
+    padding: 0;
+    background-color: variables.$background-color;
+    color: variables.$text-color;
+}
+
+main {
+    padding: 20px;
+}
+
+// --- Custom Bootstrap Overrides ---
+
+.navbar.bg-dark {
+    background-color: variables.$primary-brand-color !important;
+}
