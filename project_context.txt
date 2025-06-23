@@ -1,0 +1,1791 @@
+# Project Overview
+This file contains the concatenated source code of my web project, prepared for analysis by Google Gemini.
+
+**Project Purpose:** [A web dev project for my TAFE course and new business, MVW.]
+**Technologies Used:** [PHP, Apache, MySQL, CSS, JavaScript.]
+**Analysis Goal:** [Analyze for security, performance, and suggest refactoring for modern best practices.]
+
+--- Directory Structure ---
+[admin]/
+    index.php
+    manage_events.php
+[config]/
+    db_config.php
+[lib]/
+[public_html]/
+    [assets]/
+        [css]/
+            reset.css
+            style.css
+            style.css.map
+        [images]/
+        [js]/
+            main.js
+    about.html
+    campsite_booking.html
+    contact.html
+    diagnose.php
+    event_detail.html
+    events.html
+    index.html
+    login.php
+    logout.php
+    merchandise.html
+    product_detail.html
+    profile.php
+    register.php
+    test_db.php
+[scss]/
+    [abstracts]/
+        _variables.scss
+    [layout]/
+        _footer.scss
+        _header.scss
+        _navigation.scss
+    style.scss
+[templates]/
+Generate-GeminiContext.ps1
+project_context.txt
+
+--- File Contents ---
+
+--- START FILE: Generate-GeminiContext.ps1 ---
+`$language
+# --- Configuration ---
+# IMPORTANT: Change these paths to your project's root and desired output file location.
+$ProjectRoot = "C:\xampp\htdocs\alsmweb"
+$OutputFilePath = "C:\xampp\htdocs\alsmweb\project_context.txt"
+
+# Patterns for files/directories to exclude
+$ExcludePaths = @(
+    "*\node_modules\*",
+    "*\vendor\*",
+    "*\venv\*",
+    "*\lib\*",
+    "*\dist\*",
+    "*\build\*",
+    "*\_ig\*",
+    "*\target\*",
+    "*.log",
+    "*.tmp",
+    "*.bak",
+    "*.DS_Store",
+    ".env*",
+    "*.git*",
+    "*.vscode\*",
+    "*.idea\*",
+    "Thumbs.db",
+    "*.exe", "*.dll", "*.obj", "*.pdb",
+    "*.zip", "*.tar", "*.gz", "*.rar",
+    "*.jpg", "*.jpeg", "*.png", "*.gif", "*.bmp", "*.svg", "*.webp",
+    "*.mp3", "*.wav", "*.ogg", "*.flac", "*.aac",
+    "*.mp4", "*.mkv", "*.avi", "*.mov",
+    "*.psd", "*.ai", "*.sketch"
+)
+
+# --- Helper Functions ---
+
+Function Should-Exclude {
+    param(
+        [string]$Path,
+        [array]$ExcludePatterns
+    )
+    foreach ($pattern in $ExcludePatterns) {
+        if ($Path -like $pattern) {
+            return $true
+        }
+    }
+    return $false
+}
+
+Function Get-MarkdownLanguageIdentifier {
+    param (
+        [string]$FilePath
+    )
+    $extension = [System.IO.Path]::GetExtension($FilePath).ToLowerInvariant()
+    switch ($extension) {
+        ".php" { "php" }
+        ".html" { "html" }
+        ".htm" { "html" }
+        ".css" { "css" }
+        ".js" { "javascript" }
+        ".ts" { "typescript" }
+        ".json" { "json" }
+        ".xml" { "xml" }
+        ".sql" { "sql" }
+        ".py" { "python" }
+        ".md" { "markdown" }
+        ".txt" { "plaintext" }
+        ".sh" { "bash" }
+        ".bat" { "batch" }
+        ".ps1" { "powershell" }
+        ".java" { "java" }
+        ".c" { "c" }
+        ".cpp" { "cpp" }
+        ".cs" { "csharp" }
+        ".go" { "go" }
+        ".rb" { "ruby" }
+        ".yml" { "yaml" }
+        ".yaml" { "yaml" }
+        ".toml" { "toml" }
+        default { "" }
+    }
+}
+
+Function Get-SimpleTree {
+    param(
+        [string]$CurrentPath,
+        [int]$IndentLevel = 0,
+        [array]$ExcludePatterns
+    )
+    $indent = "    " * $IndentLevel # Using 4 regular spaces
+    $output = @()
+
+    $items = Get-ChildItem -LiteralPath $CurrentPath -Force | Where-Object {
+        $fullPath = $_.FullName
+        -not (Should-Exclude -Path $fullPath -ExcludePatterns $ExcludePatterns)
+    }
+
+    foreach ($item in $items | Sort-Object { -not $_.PSIsContainer }, Name) {
+        if ($item.PSIsContainer) {
+            $output += "$($indent)[$($item.Name)]/"
+            $output += (Get-SimpleTree -CurrentPath $item.FullName -IndentLevel ($IndentLevel + 1) -ExcludePatterns $ExcludePatterns)
+        } else {
+            $output += "$($indent)$($item.Name)"
+        }
+    }
+    return $output
+}
+
+# --- Main Script Execution ---
+
+Write-Host "Starting project context concatenation..." -ForegroundColor Cyan
+
+Remove-Item -LiteralPath $OutputFilePath -ErrorAction SilentlyContinue
+
+Add-Content -LiteralPath $OutputFilePath -Value @"
+# Project Overview
+This file contains the concatenated source code of my web project, prepared for analysis by Google Gemini.
+
+**Project Purpose:** [A web dev project for my TAFE course and new business, MVW.]
+**Technologies Used:** [PHP, Apache, MySQL, CSS, JavaScript.]
+**Analysis Goal:** [Analyze for security, performance, and suggest refactoring for modern best practices.]
+
+--- Directory Structure ---
+"@
+
+Write-Host "Generating directory tree..." -ForegroundColor Green
+$treeOutput = Get-SimpleTree -CurrentPath $ProjectRoot -ExcludePatterns $ExcludePaths
+$treeOutput | Add-Content -LiteralPath $OutputFilePath
+
+Add-Content -LiteralPath  $OutputFilePath -Value "`n--- File Contents ---`n"
+
+Write-Host "Concatenating file contents..." -ForegroundColor Green
+Get-ChildItem -LiteralPath $ProjectRoot -Recurse -File -Force | ForEach-Object {
+    $file = $_
+    $relativePath = $file.FullName.Substring($ProjectRoot.Length).TrimStart('\').Replace('\', '/')
+
+    if (Should-Exclude -Path $file.FullName -ExcludePatterns $ExcludePaths) {
+        Write-Host "Skipping excluded file: $relativePath" -ForegroundColor Yellow
+        return
+    }
+
+    $language = Get-MarkdownLanguageIdentifier -FilePath $file.FullName
+    Write-Host "Processing: $relativePath"
+
+    Add-Content -LiteralPath $OutputFilePath -Value "--- START FILE: $relativePath ---"
+    Add-Content -LiteralPath $OutputFilePath -Value "```$language"
+    Add-Content -LiteralPath $OutputFilePath -Value (Get-Content -LiteralPath $file.FullName -Raw)
+    Add-Content -LiteralPath $OutputFilePath -Value "--- END FILE: $relativePath ---"
+}
+
+Write-Host "`n-----" -ForegroundColor Cyan
+Write-Host "SCRIPT FINISHED." -ForegroundColor Green
+Write-Host "Project context file created at: $OutputFilePath" -ForegroundColor Green
+Write-Host "IMPORTANT: Review the output file for any secrets before sharing it." -ForegroundColor Red
+--- END FILE: Generate-GeminiContext.ps1 ---
+--- START FILE: project_context.txt ---
+`$language
+# Project Overview
+This file contains the concatenated source code of my web project, prepared for analysis by Google Gemini.
+
+**Project Purpose:** [A web dev project for my TAFE course and new business, MVW.]
+**Technologies Used:** [PHP, Apache, MySQL, CSS, JavaScript.]
+**Analysis Goal:** [Analyze for security, performance, and suggest refactoring for modern best practices.]
+
+--- Directory Structure ---
+[admin]/
+    index.php
+    manage_events.php
+[config]/
+    db_config.php
+[lib]/
+[public_html]/
+    [assets]/
+        [css]/
+            reset.css
+            style.css
+            style.css.map
+        [images]/
+        [js]/
+            main.js
+    about.html
+    campsite_booking.html
+    contact.html
+    diagnose.php
+    event_detail.html
+    events.html
+    index.html
+    login.php
+    logout.php
+    merchandise.html
+    product_detail.html
+    profile.php
+    register.php
+    test_db.php
+[scss]/
+    [abstracts]/
+        _variables.scss
+    [layout]/
+        _footer.scss
+        _header.scss
+        _navigation.scss
+    style.scss
+[templates]/
+Generate-GeminiContext.ps1
+project_context.txt
+
+--- File Contents ---
+
+--- START FILE: Generate-GeminiContext.ps1 ---
+`$language
+# --- Configuration ---
+# IMPORTANT: Change these paths to your project's root and desired output file location.
+$ProjectRoot = "C:\xampp\htdocs\alsmweb"
+$OutputFilePath = "C:\xampp\htdocs\alsmweb\project_context.txt"
+
+# Patterns for files/directories to exclude
+$ExcludePaths = @(
+    "*\node_modules\*",
+    "*\vendor\*",
+    "*\venv\*",
+    "*\lib\*",
+    "*\dist\*",
+    "*\build\*",
+    "*\_ig\*",
+    "*\target\*",
+    "*.log",
+    "*.tmp",
+    "*.bak",
+    "*.DS_Store",
+    ".env*",
+    "*.git*",
+    "*.vscode\*",
+    "*.idea\*",
+    "Thumbs.db",
+    "*.exe", "*.dll", "*.obj", "*.pdb",
+    "*.zip", "*.tar", "*.gz", "*.rar",
+    "*.jpg", "*.jpeg", "*.png", "*.gif", "*.bmp", "*.svg", "*.webp",
+    "*.mp3", "*.wav", "*.ogg", "*.flac", "*.aac",
+    "*.mp4", "*.mkv", "*.avi", "*.mov",
+    "*.psd", "*.ai", "*.sketch"
+)
+
+# --- Helper Functions ---
+
+Function Should-Exclude {
+    param(
+        [string]$Path,
+        [array]$ExcludePatterns
+    )
+    foreach ($pattern in $ExcludePatterns) {
+        if ($Path -like $pattern) {
+            return $true
+        }
+    }
+    return $false
+}
+
+Function Get-MarkdownLanguageIdentifier {
+    param (
+        [string]$FilePath
+    )
+    $extension = [System.IO.Path]::GetExtension($FilePath).ToLowerInvariant()
+    switch ($extension) {
+        ".php" { "php" }
+        ".html" { "html" }
+        ".htm" { "html" }
+        ".css" { "css" }
+        ".js" { "javascript" }
+        ".ts" { "typescript" }
+        ".json" { "json" }
+        ".xml" { "xml" }
+        ".sql" { "sql" }
+        ".py" { "python" }
+        ".md" { "markdown" }
+        ".txt" { "plaintext" }
+        ".sh" { "bash" }
+        ".bat" { "batch" }
+        ".ps1" { "powershell" }
+        ".java" { "java" }
+        ".c" { "c" }
+        ".cpp" { "cpp" }
+        ".cs" { "csharp" }
+        ".go" { "go" }
+        ".rb" { "ruby" }
+        ".yml" { "yaml" }
+        ".yaml" { "yaml" }
+        ".toml" { "toml" }
+        default { "" }
+    }
+}
+
+Function Get-SimpleTree {
+    param(
+        [string]$CurrentPath,
+        [int]$IndentLevel = 0,
+        [array]$ExcludePatterns
+    )
+    $indent = "    " * $IndentLevel # Using 4 regular spaces
+    $output = @()
+
+    $items = Get-ChildItem -LiteralPath $CurrentPath -Force | Where-Object {
+        $fullPath = $_.FullName
+        -not (Should-Exclude -Path $fullPath -ExcludePatterns $ExcludePatterns)
+    }
+
+    foreach ($item in $items | Sort-Object { -not $_.PSIsContainer }, Name) {
+        if ($item.PSIsContainer) {
+            $output += "$($indent)[$($item.Name)]/"
+            $output += (Get-SimpleTree -CurrentPath $item.FullName -IndentLevel ($IndentLevel + 1) -ExcludePatterns $ExcludePatterns)
+        } else {
+            $output += "$($indent)$($item.Name)"
+        }
+    }
+    return $output
+}
+
+# --- Main Script Execution ---
+
+Write-Host "Starting project context concatenation..." -ForegroundColor Cyan
+
+Remove-Item -LiteralPath $OutputFilePath -ErrorAction SilentlyContinue
+
+Add-Content -LiteralPath $OutputFilePath -Value @"
+# Project Overview
+This file contains the concatenated source code of my web project, prepared for analysis by Google Gemini.
+
+**Project Purpose:** [A web dev project for my TAFE course and new business, MVW.]
+**Technologies Used:** [PHP, Apache, MySQL, CSS, JavaScript.]
+**Analysis Goal:** [Analyze for security, performance, and suggest refactoring for modern best practices.]
+
+--- Directory Structure ---
+"@
+
+Write-Host "Generating directory tree..." -ForegroundColor Green
+$treeOutput = Get-SimpleTree -CurrentPath $ProjectRoot -ExcludePatterns $ExcludePaths
+$treeOutput | Add-Content -LiteralPath $OutputFilePath
+
+Add-Content -LiteralPath  $OutputFilePath -Value "`n--- File Contents ---`n"
+
+Write-Host "Concatenating file contents..." -ForegroundColor Green
+Get-ChildItem -LiteralPath $ProjectRoot -Recurse -File -Force | ForEach-Object {
+    $file = $_
+    $relativePath = $file.FullName.Substring($ProjectRoot.Length).TrimStart('\').Replace('\', '/')
+
+    if (Should-Exclude -Path $file.FullName -ExcludePatterns $ExcludePaths) {
+        Write-Host "Skipping excluded file: $relativePath" -ForegroundColor Yellow
+        return
+    }
+
+    $language = Get-MarkdownLanguageIdentifier -FilePath $file.FullName
+    Write-Host "Processing: $relativePath"
+
+    Add-Content -LiteralPath $OutputFilePath -Value "--- START FILE: $relativePath ---"
+    Add-Content -LiteralPath $OutputFilePath -Value "```$language"
+    Add-Content -LiteralPath $OutputFilePath -Value (Get-Content -LiteralPath $file.FullName -Raw)
+    Add-Content -LiteralPath $OutputFilePath -Value "--- END FILE: $relativePath ---"
+}
+
+Write-Host "`n-----" -ForegroundColor Cyan
+Write-Host "SCRIPT FINISHED." -ForegroundColor Green
+Write-Host "Project context file created at: $OutputFilePath" -ForegroundColor Green
+Write-Host "IMPORTANT: Review the output file for any secrets before sharing it." -ForegroundColor Red
+--- END FILE: Generate-GeminiContext.ps1 ---
+--- START FILE: project_context.txt ---
+`$language
+
+--- END FILE: project_context.txt ---
+--- START FILE: admin/index.php ---
+`$language
+<?php
+session_start();
+
+// Check if user is logged in AND is an admin
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    // If not an admin, or not logged in, redirect to the main login page
+    header("Location: /alsmweb/public_html/login.php?error=unauthorized");
+    exit();
+}
+
+// Admin content goes below this line
+echo "<h1>Welcome to the Admin Dashboard, " . htmlspecialchars($_SESSION['username']) . "!</h1>";
+?>
+--- END FILE: admin/index.php ---
+--- START FILE: admin/manage_events.php ---
+`$language
+<?php
+
+session_start();
+
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header("Location: /alsmweb/public_html/login.php?error=unauthorized");
+    exit();
+}
+
+// --- DATABASE LOGIC & PAGE SETUP BLOCK ---
+// This part connects to the DB and gets the events.
+require_once '../config/db_config.php';
+
+try {
+    $sql = "SELECT event_id, event_name, start_date, end_date, location FROM Events ORDER BY start_date DESC";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute();
+    $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    // If the database connection or query fails, we'll see this error.
+    die("Database Error: Could not fetch events. " . $e->getMessage());
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Events - Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+    <div class="container mt-5">
+        <h1 class="mb-4">Event Management</h1>
+
+        <a href="add_event.php" class="btn btn-success mb-3">Add New Event</a>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Event Name</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Location</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if ($events): ?>
+                    <?php foreach ($events as $event): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($event['event_name']) ?></td>
+                            <td><?= htmlspecialchars($event['start_date']) ?></td>
+                            <td><?= htmlspecialchars($event['end_date']) ?></td>
+                            <td><?= htmlspecialchars($event['location']) ?></td>
+                            <td>
+                                <a href="edit_event.php?id=<?= $event['event_id'] ?>" class="btn btn-primary btn-sm">Edit</a>
+                                <a href="delete_event.php?id=<?= $event['event_id'] ?>" class="btn btn-danger btn-sm">Delete</a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="5" class="text-center">No events found. Click "Add New Event" to create one.</td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+--- END FILE: admin/manage_events.php ---
+--- START FILE: config/db_config.php ---
+`$language
+<?php
+/*
+* DATABASE CONFIGURATION
+*
+* This file defines the constants needed to connect to the database.
+*/
+
+// --- IMPORTANT ---
+// It is strongly recommended to create a new MySQL user for this application
+// instead of using the default 'root' user.
+// You can do this from the main phpMyAdmin page under "User accounts".
+
+// Database Credentials
+define('DB_HOST', 'localhost');
+define('DB_USER', 'alsm_user'); // <-- Replace with the username you create
+define('DB_PASS', '8KG21J6ED7zHhwL-'); // <-- Replace with your new password
+define('DB_NAME', 'alsm_db'); // Using the database name you chose
+
+// --- DATABASE CONNECTION (PDO) ---
+try {
+    // Create a new PDO instance (the connection object)
+    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
+    
+    // Set PDO to throw exceptions on error for better error handling
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+} catch(PDOException $e){
+    // If the connection fails, stop the script and show a generic error.
+    // In a real production environment, you would log this error instead of showing it.
+    die("ERROR: Could not connect to the database. " . $e->getMessage());
+}
+?>
+--- END FILE: config/db_config.php ---
+--- START FILE: public_html/about.html ---
+`$language
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALSM - About Us</title>
+        <link rel="stylesheet" href="assets/css/reset.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Australian Large Scale Models</h1>
+    </header>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="index.html">ALSM</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="index.html">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="events.html">Events</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="merchandise.html">Merchandise</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="campsite_booking.html">Campsite Booking</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="about.html">About</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="contact.html">Contact</a>
+                </li>
+                 <li class="nav-item">
+                    <a class="nav-link" href="login.php">Login</a>
+                </li>
+                 <li class="nav-item">
+                    <a class="nav-link" href="register.php">Register</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+    <main>
+        <h2>About The Festival</h2>
+        <p>Information about the history and purpose of the festival will go here.</p>
+    </main>
+    <footer>
+        <p>&copy; 2025 Australian Large Scale Models</p>
+    </footer>
+</body><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+<script src="assets/js/main.js"></script>
+</html>
+--- END FILE: public_html/about.html ---
+--- START FILE: public_html/campsite_booking.html ---
+`$language
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALSM - Campsite Booking</title>
+        <link rel="stylesheet" href="assets/css/reset.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Australian Large Scale Models</h1>
+    </header>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="index.html">ALSM</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="index.html">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="events.html">Events</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="merchandise.html">Merchandise</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="campsite_booking.html">Campsite Booking</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="about.html">About</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="contact.html">Contact</a>
+                </li>
+                 <li class="nav-item">
+                    <a class="nav-link" href="login.php">Login</a>
+                </li>
+                 <li class="nav-item">
+                    <a class="nav-link" href="register.php">Register</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+    <main>
+        <h2>Campsite Booking</h2>
+        <p>Information about campsites and a booking form will be here.</p>
+    </main>
+    <footer>
+        <p>&copy; 2025 Australian Large Scale Models</p>
+    </footer>
+</body><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+<script src="assets/js/main.js"></script>
+</html>
+--- END FILE: public_html/campsite_booking.html ---
+--- START FILE: public_html/contact.html ---
+`$language
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALSM - Contact Us</title>
+        <link rel="stylesheet" href="assets/css/reset.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Australian Large Scale Models</h1>
+    </header>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="index.html">ALSM</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="index.html">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="events.html">Events</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="merchandise.html">Merchandise</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="campsite_booking.html">Campsite Booking</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="about.html">About</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="contact.html">Contact</a>
+                </li>
+                 <li class="nav-item">
+                    <a class="nav-link" href="login.php">Login</a>
+                </li>
+                 <li class="nav-item">
+                    <a class="nav-link" href="register.php">Register</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+    <main class="container mt-4">
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <h2>Contact Us</h2>
+                <p>Have a question? Fill out the form below and we'll get back to you.</p>
+                
+                <form id="contactForm" novalidate>
+                    <div class="mb-3">
+                        <label for="contactName" class="form-label">Your Name</label>
+                        <input type="text" class="form-control" id="contactName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="contactEmail" class="form-label">Your Email</label>
+                        <input type="email" class="form-control" id="contactEmail" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="contactMessage" class="form-label">Message</label>
+                        <textarea class="form-control" id="contactMessage" rows="5" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Send Message</button>
+                </form>
+            </div>
+        </div>
+    </main>
+    <footer>
+        <p>&copy; 2025 Australian Large Scale Models</p>
+    </footer>
+</body><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+<script src="assets/js/main.js"></script>
+</html>
+--- END FILE: public_html/contact.html ---
+--- START FILE: public_html/diagnose.php ---
+`$language
+<?php
+
+// Force PHP to display all errors for this script
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+echo "<h1>Deep Environment Diagnostic</h1>";
+
+// --- Credentials from our config file ---
+$db_host = 'localhost';
+$db_user = 'alsm_user';
+$db_pass = 'Password123'; // The simple password we reset to
+
+echo "<p><strong>Attempting to connect to MySQL server with these credentials:</strong><br>";
+echo "Host: " . $db_host . "<br>";
+echo "User: " . $db_user . "<br>";
+echo "Password: " . $db_pass . "</p><hr>";
+
+
+try {
+    // --- Step 1: Connect to the MySQL SERVER itself ---
+    $pdo = new PDO("mysql:host=" . $db_host, $db_user, $db_pass);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    
+    echo "<p style='color:green; font-weight:bold;'>Step 1 SUCCESS: Connected to the MySQL server process.</p>";
+
+    // --- Step 2: Ask the server to list all databases it knows about ---
+    echo "<p><strong>Step 2: Asking the server to list all available databases...</strong></p>";
+    $stmt = $pdo->query("SHOW DATABASES");
+    $databases = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+    echo "<h3>Databases that the user '" . $db_user . "' can see:</h3>";
+    echo "<pre>";
+    print_r($databases);
+    echo "</pre>";
+    echo "<hr>";
+
+} catch(PDOException $e) {
+    // This will catch any connection or query errors
+    echo "<p style='color:red; font-weight:bold;'>DIAGNOSTIC FAILED. The script could not complete.</p>";
+    echo "<p>The error message is: <strong>" . $e->getMessage() . "</strong></p>";
+    echo "<hr>";
+}
+
+echo "<h2>PHP Configuration Info</h2>";
+phpinfo();
+
+?>
+--- END FILE: public_html/diagnose.php ---
+--- START FILE: public_html/events.html ---
+`$language
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALSM - Events</title>
+        <link rel="stylesheet" href="assets/css/reset.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Australian Large Scale Models</h1>
+    </header>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="index.html">ALSM</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="index.html">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="events.html">Events</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="merchandise.html">Merchandise</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="campsite_booking.html">Campsite Booking</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="about.html">About</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="contact.html">Contact</a>
+                </li>
+                 <li class="nav-item">
+                    <a class="nav-link" href="login.php">Login</a>
+                </li>
+                 <li class="nav-item">
+                    <a class="nav-link" href="register.php">Register</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+    <main>
+        <h2>Events Listing</h2>
+        <p>Details about upcoming events and sub-events will be displayed here.</p>
+    </main>
+    <footer>
+        <p>&copy; 2025 Australian Large Scale Models</p>
+    </footer>
+</body><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+<script src="assets/js/main.js"></script>
+</html>
+--- END FILE: public_html/events.html ---
+--- START FILE: public_html/event_detail.html ---
+`$language
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALSM - Event Details</title>
+        <link rel="stylesheet" href="assets/css/reset.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Australian Large Scale Models</h1>
+    </header>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="index.html">ALSM</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="index.html">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="events.html">Events</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="merchandise.html">Merchandise</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="campsite_booking.html">Campsite Booking</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="about.html">About</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="contact.html">Contact</a>
+                </li>
+                 <li class="nav-item">
+                    <a class="nav-link" href="login.php">Login</a>
+                </li>
+                 <li class="nav-item">
+                    <a class="nav-link" href="register.php">Register</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+    <main>
+        <h2>Event Detail Page</h2>
+        <p>This page will serve as a template for individual event details.</p>
+    </main>
+    <footer>
+        <p>&copy; 2025 Australian Large Scale Models</p>
+    </footer>
+</body><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+<script src="assets/js/main.js"></script>
+</html>
+--- END FILE: public_html/event_detail.html ---
+--- START FILE: public_html/index.html ---
+`$language
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Australian Large Scale Models - Home</title>
+        <link rel="stylesheet" href="assets/css/reset.css">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+        <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Australian Large Scale Models</h1>
+    </header>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="index.html">ALSM</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="index.html">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="events.html">Events</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="merchandise.html">Merchandise</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="campsite_booking.html">Campsite Booking</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="about.html">About</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="contact.html">Contact</a>
+                </li>
+                 <li class="nav-item">
+                    <a class="nav-link" href="login.php">Login</a>
+                </li>
+                 <li class="nav-item">
+                    <a class="nav-link" href="register.php">Register</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+    <main class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <h2>Welcome to the Australian Large Scale Models!</h2>
+            <p>Your hub for all event information, merchandise, and bookings. This is the main content area, and it takes up 8 of the 12 available columns on medium-sized screens and larger.</p>
+        </div>
+        <div class="col-md-4">
+            <div id="news-box" class="p-3 bg-light rounded">
+                <h4>Latest News</h4>
+                <p id="news-content" class="mb-0">Some quick updates or announcements could go here.</p>
+                <button id="update-news-btn" class="btn btn-sm btn-outline-primary mt-2">Update News</button>
+            </div>
+        </div>
+    </div>
+</main>
+
+    <footer>
+        <p>&copy; 2025 Australian Large Scale Models</p>
+    </footer>
+</body><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+<script src="assets/js/main.js"></script>
+</html>
+--- END FILE: public_html/index.html ---
+--- START FILE: public_html/login.php ---
+`$language
+<?php
+// ALL PHP code for this page must go at the very top.
+// session_start() must be the very first thing called on the page.
+session_start();
+
+// If the user is already logged in, redirect them to their profile page
+if (isset($_SESSION['user_id'])) {
+    header("Location: profile.php");
+    exit(); // Stop script execution
+}
+
+// Include the database configuration file
+require_once __DIR__ . '/../config/db_config.php';
+
+$error_message = '';
+
+// Check if the form was submitted
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $username = trim($_POST['username']);
+    $password = $_POST['password'];
+
+    if (empty($username) || empty($password)) {
+        $error_message = "Username and password are required.";
+    } else {
+        try {
+            // Find the user in the database by their username
+            $sql = "SELECT user_id, username, password_hash, role FROM Users WHERE username = :username";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(['username' => $username]);
+            
+            // fetch() returns the user record, or false if not found
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Verify the user was found AND the password matches the hash
+            if ($user && password_verify($password, $user['password_hash'])) {
+                // Password is correct! Start the user session.
+                
+                // Regenerate the session ID for security
+                session_regenerate_id(true);
+
+                // Store user data in the session array
+                $_SESSION['user_id'] = $user['user_id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['role'] = $user['role'];
+
+                // Redirect the user to their profile page
+                header("Location: profile.php");
+                exit(); // Important to stop the script after a redirect
+
+            } else {
+                // If login fails (user not found or password incorrect)
+                $error_message = "Invalid username or password.";
+            }
+        } catch (PDOException $e) {
+            $error_message = "Database error: " . $e->getMessage();
+        }
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALSM - Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/reset.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+         </nav>
+    <main class="container mt-4">
+        <div class="row">
+            <div class="col-md-6 offset-md-3">
+                <h2>User Login</h2>
+
+                <?php if (!empty($error_message)): ?>
+                    <div class="alert alert-danger"><?php echo $error_message; ?></div>
+                <?php endif; ?>
+
+                <form action="login.php" method="POST">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/main.js"></script>
+</body>
+</html>
+--- END FILE: public_html/login.php ---
+--- START FILE: public_html/logout.php ---
+`$language
+<?php
+// Always start the session to access it
+session_start();
+
+// Unset all of the session variables
+$_SESSION = array();
+
+// If it's desired to kill the session, also delete the session cookie.
+// Note: This will destroy the session, and not just the session data!
+if (ini_get("session.use_cookies")) {
+    $params = session_get_cookie_params();
+    setcookie(session_name(), '', time() - 42000,
+        $params["path"], $params["domain"],
+        $params["secure"], $params["httponly"]
+    );
+}
+
+// Finally, destroy the session.
+session_destroy();
+
+// Redirect to the login page
+header("Location: login.php");
+exit();
+?>
+--- END FILE: public_html/logout.php ---
+--- START FILE: public_html/merchandise.html ---
+`$language
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALSM - Merchandise</title>
+        <link rel="stylesheet" href="assets/css/reset.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Australian Large Scale Models</h1>
+    </header>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="index.html">ALSM</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="index.html">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="events.html">Events</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="merchandise.html">Merchandise</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="campsite_booking.html">Campsite Booking</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="about.html">About</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="contact.html">Contact</a>
+                </li>
+                 <li class="nav-item">
+                    <a class="nav-link" href="login.php">Login</a>
+                </li>
+                 <li class="nav-item">
+                    <a class="nav-link" href="register.php">Register</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+    <main class="container mt-4">
+    <div class="row">
+        <div class="col-12 text-center mb-4">
+            <h2>Merchandise</h2>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100">
+                <img src="https://via.placeholder.com/400x300" class="card-img-top" alt="Product Image">
+                <div class="card-body">
+                    <h5 class="card-title">Festival T-Shirt</h5>
+                    <p class="card-text">High-quality cotton t-shirt with the official 2025 festival logo.</p>
+                    <a href="product_detail.html" class="btn btn-primary">View Details</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100">
+                <img src="https://via.placeholder.com/400x300" class="card-img-top" alt="Product Image">
+                <div class="card-body">
+                    <h5 class="card-title">Festival Cap</h5>
+                    <p class="card-text">A stylish and comfortable cap to keep the sun off your face.</p>
+                    <a href="product_detail.html" class="btn btn-primary">View Details</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100">
+                <img src="https://via.placeholder.com/400x300" class="card-img-top" alt="Product Image">
+                <div class="card-body">
+                    <h5 class="card-title">Model Glider Kit</h5>
+                    <p class="card-text">A balsa wood glider kit, perfect for beginners and enthusiasts alike.</p>
+                    <a href="product_detail.html" class="btn btn-primary">View Details</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+    <footer>
+        <p>&copy; 2025 Australian Large Scale Models</p>
+    </footer>
+</body><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+<script src="assets/js/main.js"></script>
+</html>
+--- END FILE: public_html/merchandise.html ---
+--- START FILE: public_html/product_detail.html ---
+`$language
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALSM - Product Details</title>
+        <link rel="stylesheet" href="assets/css/reset.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>Australian Large Scale Models</h1>
+    </header>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="index.html">ALSM</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="index.html">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="events.html">Events</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="merchandise.html">Merchandise</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="campsite_booking.html">Campsite Booking</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="about.html">About</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="contact.html">Contact</a>
+                </li>
+                 <li class="nav-item">
+                    <a class="nav-link" href="login.php">Login</a>
+                </li>
+                 <li class="nav-item">
+                    <a class="nav-link" href="register.php">Register</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+    <main>
+        <h2>Product Detail Page</h2>
+        <p>This page will serve as a template for individual product details.</p>
+    </main>
+    <footer>
+        <p>&copy; 2025 Australian Large Scale Models</p>
+    </footer>
+</body><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+<script src="assets/js/main.js"></script>
+</html>
+--- END FILE: public_html/product_detail.html ---
+--- START FILE: public_html/profile.php ---
+`$language
+<?php
+// Must be the very first thing on the page
+session_start();
+
+// 1. Page Protection: Check if the user is logged in.
+// If the user_id session variable is not set, redirect them to the login page.
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit(); // Stop the script from executing further
+}
+
+// 2. Fetch User Data
+// Include the database configuration
+require_once __DIR__ . '/../config/db_config.php';
+
+$user = null; // Initialize user variable
+
+try {
+    // Prepare a SQL statement to get the user's details
+    $sql = "SELECT username, email, first_name, last_name, created_at FROM Users WHERE user_id = :user_id";
+    $stmt = $pdo->prepare($sql);
+    
+    // Bind the user_id from the session to the placeholder
+    $stmt->execute(['user_id' => $_SESSION['user_id']]);
+    
+    // Fetch the user data
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+} catch (PDOException $e) {
+    // Optional: handle database errors, maybe redirect to an error page
+    die("Error: Could not retrieve user data. " . $e->getMessage());
+}
+
+// A final check: if for some reason the user was not found in the DB, log them out.
+if (!$user) {
+    // This could happen if the user was deleted from the DB while their session was active.
+    header("Location: logout.php");
+    exit();
+}
+
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALSM - Your Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/reset.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="index.php">ALSM</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="logout.php">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mt-4">
+        <h1>Welcome, <?php echo htmlspecialchars($user['username']); ?>!</h1>
+        <p>This is your profile page. You are logged in.</p>
+
+        <div class="card">
+            <div class="card-header">
+                Your Details
+            </div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item"><strong>Username:</strong> <?php echo htmlspecialchars($user['username']); ?></li>
+                <li class="list-group-item"><strong>Email:</strong> <?php echo htmlspecialchars($user['email']); ?></li>
+                <li class="list-group-item"><strong>Member Since:</strong> <?php echo date("d M Y", strtotime($user['created_at'])); ?></li>
+            </ul>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/main.js"></script>
+</body>
+</html>
+--- END FILE: public_html/profile.php ---
+--- START FILE: public_html/register.php ---
+`$language
+<?php
+// This block of PHP code will run on the server BEFORE the HTML is sent
+$message = ''; // Variable to hold success or error messages
+
+// Check if the form was submitted by checking the REQUEST_METHOD
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    
+    // Step 1: Include our database connection file
+    // The path needs to go up one level from public_html to find the config folder
+    require_once __DIR__ . '/../config/db_config.php';
+
+    // Step 2: Get the form data and perform server-side validation
+    $username = trim($_POST['username']);
+    $email = trim($_POST['email']);
+    $password = $_POST['password'];
+    $confirm_password = $_POST['confirm_password'];
+    $errors = [];
+
+    if (empty($username)) {
+        $errors[] = "Username is required.";
+    }
+    if (empty($email)) {
+        $errors[] = "Email is required.";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors[] = "Invalid email format.";
+    }
+    if (empty($password)) {
+        $errors[] = "Password is required.";
+    }
+    if ($password !== $confirm_password) {
+        $errors[] = "Passwords do not match.";
+    }
+
+    // Step 3: Check if username or email already exists in the database
+    if (empty($errors)) {
+        try {
+            $sql = "SELECT COUNT(*) FROM Users WHERE username = :username OR email = :email";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(['username' => $username, 'email' => $email]);
+            if ($stmt->fetchColumn() > 0) {
+                $errors[] = "Username or email already taken.";
+            }
+        } catch (PDOException $e) {
+            $errors[] = "Database error: " . $e->getMessage();
+        }
+    }
+
+    // Step 4: If there are no errors, proceed with inserting the new user
+    if (empty($errors)) {
+        // Hash the password for security BEFORE storing it
+        $password_hash = password_hash($password, PASSWORD_DEFAULT);
+
+        try {
+            // Prepare the SQL INSERT statement
+            $sql = "INSERT INTO Users (username, email, password_hash) VALUES (:username, :email, :password_hash)";
+            $stmt = $pdo->prepare($sql);
+            
+            // Bind the parameters and execute the statement
+            $stmt->execute([
+                'username' => $username,
+                'email' => $email,
+                'password_hash' => $password_hash
+            ]);
+
+            $message = "<div class='alert alert-success'>Registration successful! You can now log in.</div>";
+
+        } catch(PDOException $e){
+            $message = "<div class='alert alert-danger'>Could not register user. " . $e->getMessage() . "</div>";
+        }
+    } else {
+        // If there were errors, build an error message
+        $message = "<div class='alert alert-danger'><ul>";
+        foreach ($errors as $error) {
+            $message .= "<li>$error</li>";
+        }
+        $message .= "</ul></div>";
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALSM - Register</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/reset.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        </nav>
+    <main class="container mt-4">
+        <div class="row">
+            <div class="col-md-6 offset-md-3">
+                <h2>Register a New Account</h2>
+                
+                <?php if(!empty($message)) echo $message; ?>
+
+                <form action="register.php" method="POST">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email address</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Register</button>
+                </form>
+            </div>
+        </div>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/main.js"></script>
+</body>
+</html>
+--- END FILE: public_html/register.php ---
+--- START FILE: public_html/test_db.php ---
+`$language
+<?php
+
+// This will force all errors to be displayed on the screen for debugging.
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+echo "<h1>Database Connection Test</h1>";
+echo "<p>Attempting to include config file and connect...</p>";
+
+// Include our configuration file.
+// The script will attempt the PDO connection defined inside db_config.php
+require_once __DIR__ . '/../config/db_config.php';
+
+// If the script gets to this line without dying from an error in the file above,
+// it means the connection was successful.
+echo "<hr>";
+echo "<h2 style='color:green;'>SUCCESS!</h2>";
+echo "<p>The connection to the MySQL server was successful using the credentials provided.</p>";
+echo "<p>Successfully connected to the database named <strong>" . DB_NAME . "</strong> as the user <strong>" . DB_USER . "</strong>.</p>";
+
+?>
+--- END FILE: public_html/test_db.php ---
+--- START FILE: public_html/assets/css/reset.css ---
+`$language
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html {
+font-size:16px;
+scroll-behavior:smooth;
+}
+
+body {
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+img, picture, video, canvas, svg {
+  display: block;
+  max-width: 100%;
+}
+
+input, button, textarea, select {
+  font: inherit;
+}
+
+p, h1, h2, h3, h4, h5, h6 {
+  overflow-wrap: break-word;
+}
+
+p {
+  text-wrap: pretty;
+}
+h1, h2, h3, h4, h5, h6 {
+  text-wrap: balance;
+}
+
+#root, #__next {
+  isolation: isolate;
+}
+
+--- END FILE: public_html/assets/css/reset.css ---
+--- START FILE: public_html/assets/css/style.css ---
+`$language
+header {
+  background-color: #333;
+  color: #fff;
+  padding: 1rem 0;
+  text-align: center;
+}
+
+nav ul {
+  padding: 0;
+  list-style: none;
+}
+nav ul li {
+  display: inline;
+  margin-right: 20px;
+}
+nav a {
+  color: #fff;
+  text-decoration: none;
+}
+
+footer {
+  text-align: center;
+  padding: 1rem 0;
+  background-color: #333;
+  color: #fff;
+  margin-top: 20px;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+  background-color: #f4f4f4;
+  color: #333;
+}
+
+main {
+  padding: 20px;
+}
+
+.navbar.bg-dark {
+  background-color: #0069D9 !important;
+}/*# sourceMappingURL=style.css.map */
+--- END FILE: public_html/assets/css/style.css ---
+--- START FILE: public_html/assets/css/style.css.map ---
+`$language
+{"version":3,"sourceRoot":"","sources":["../../../scss/layout/_header.scss","../../../scss/abstracts/_variables.scss","../../../scss/layout/_navigation.scss","../../../scss/layout/_footer.scss","../../../scss/style.scss"],"names":[],"mappings":"AAEA;EACI,kBCFY;EDGZ;EACA;EACA;;;AEHA;EACI;EACA;;AAEA;EACI;EACA;;AAIR;EACI,ODVW;ECWX;;;ACdR;EACI;EACA;EACA,kBFHY;EEIZ,OFDe;EEEf;;;ACCJ;EACI,aHFS;EGGT,aHFU;EGGV;EACA;EACA,kBHVe;EGWf,OHVS;;;AGab;EACI;;;AAKJ;EACI","file":"style.css"}
+--- END FILE: public_html/assets/css/style.css.map ---
+--- START FILE: public_html/assets/js/main.js ---
+`$language
+// A good practice: wait for the HTML to fully load before running scripts
+document.addEventListener('DOMContentLoaded', function() {
+
+    // 1. Select the HTML elements we need by their ID
+    const updateButton = document.getElementById('update-news-btn');
+    const newsContent = document.getElementById('news-content');
+
+    // 2. Add an event listener that waits for a 'click' on our button
+    // First, check if the button actually exists on the current page to prevent errors
+    if (updateButton) {
+        updateButton.addEventListener('click', function() {
+            // 3. When the button is clicked, this function runs
+            newsContent.textContent = "The button was clicked! The news has been updated.";
+            newsContent.style.color = 'red';
+        });
+    }
+
+});
+
+// --- Contact Form Validation ---
+const contactForm = document.getElementById('contactForm');
+
+// Check if the form exists on the current page
+if (contactForm) {
+    contactForm.addEventListener('submit', function(event) {
+        // This 'event' object is the submission event itself
+        const nameInput = document.getElementById('contactName');
+        const emailInput = document.getElementById('contactEmail');
+        const messageInput = document.getElementById('contactMessage');
+        
+        let isValid = true;
+        let errorMessages = [];
+
+        // Rule 1: Check if name is empty
+        if (nameInput.value.trim() === '') {
+            isValid = false;
+            errorMessages.push('Name is required.');
+        }
+
+        // Rule 2: Check for a valid email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(emailInput.value)) {
+            isValid = false;
+            errorMessages.push('Please enter a valid email address.');
+        }
+
+        // Rule 3: Check if message is empty
+        if (messageInput.value.trim() === '') {
+            isValid = false;
+            errorMessages.push('Message is required.');
+        }
+
+        // If any validation rule failed, stop the form submission
+        if (!isValid) {
+            // This is the most important line - it STOPS the form from submitting
+            event.preventDefault(); 
+            
+            // Show all error messages in a single alert
+            alert('Please fix the following errors:\n\n' + errorMessages.join('\n'));
+        }
+    });
+}
+--- END FILE: public_html/assets/js/main.js ---
+--- START FILE: scss/style.scss ---
+`$language
+@use 'abstracts/variables';
+
+@use 'layout/header';
+@use 'layout/navigation';
+@use 'layout/footer';
+
+// Base styles can remain in the main file for now
+body {
+    font-family: variables.$font-stack;
+    line-height: variables.$line-height;
+    margin: 0;
+    padding: 0;
+    background-color: variables.$background-color;
+    color: variables.$text-color;
+}
+
+main {
+    padding: 20px;
+}
+
+// --- Custom Bootstrap Overrides ---
+
+.navbar.bg-dark {
+    background-color: variables.$primary-brand-color !important;
+}
+--- END FILE: scss/style.scss ---
+--- START FILE: scss/abstracts/_variables.scss ---
+`$language
+// From Project Plan section 2.2 
+$primary-color: #333;
+$background-color: #f4f4f4;
+$text-color: #333;
+$light-text-color: #fff; // For text on dark backgrounds
+
+$font-stack: Arial, sans-serif;
+$line-height: 1.6;
+
+$primary-brand-color: #0069D9; 
+--- END FILE: scss/abstracts/_variables.scss ---
+--- START FILE: scss/layout/_footer.scss ---
+`$language
+@use '../abstracts/variables';
+footer {
+    text-align: center;
+    padding: 1rem 0;
+    background-color: variables.$primary-color;
+    color: variables.$light-text-color;
+    margin-top: 20px;
+}
+--- END FILE: scss/layout/_footer.scss ---
+--- START FILE: scss/layout/_header.scss ---
+`$language
+@use '../abstracts/variables';
+
+header {
+    background-color: variables.$primary-color;
+    color: variables.$light-text-color;
+    padding: 1rem 0;
+    text-align: center;
+}
+
+--- END FILE: scss/layout/_header.scss ---
+--- START FILE: scss/layout/_navigation.scss ---
+`$language
+@use '../abstracts/variables';
+nav {
+    // Note the nesting of selectors that match the HTML structure
+    ul {
+        padding: 0;
+        list-style: none;
+
+        li {
+            display: inline;
+            margin-right: 20px;
+        }
+    }
+
+    a {
+        color: variables.$light-text-color;
+        text-decoration: none;
+    }
+}
+--- END FILE: scss/layout/_navigation.scss ---

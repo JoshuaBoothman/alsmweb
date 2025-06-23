@@ -1,7 +1,13 @@
 <?php
+
+// FORCE ERROR REPORTING FOR DEBUGGING
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
 // ALL PHP code for this page must go at the very top.
 // session_start() must be the very first thing called on the page.
 session_start();
+
 
 // If the user is already logged in, redirect them to their profile page
 if (isset($_SESSION['user_id'])) {

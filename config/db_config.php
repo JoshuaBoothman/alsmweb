@@ -13,7 +13,7 @@
 // Database Credentials
 define('DB_HOST', 'localhost');
 define('DB_USER', 'alsm_user'); // <-- Replace with the username you create
-define('DB_PASS', 'Password123'); // <-- Replace with your new password
+define('DB_PASS', '8KG21J6ED7zHhwL-'); // <-- Replace with your new password
 define('DB_NAME', 'alsm_db'); // Using the database name you chose
 
 // --- DATABASE CONNECTION (PDO) ---
