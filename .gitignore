@@ -1,2 +1,2 @@
 # Ignore local database backups, schemas, and other private files
-_localfiles/
+_local_files/
