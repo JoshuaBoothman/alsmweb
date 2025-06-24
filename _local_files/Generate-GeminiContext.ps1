@@ -1,7 +1,7 @@
 # --- Configuration ---
 # IMPORTANT: Change these paths to your project's root and desired output file location.
 $ProjectRoot = "C:\xampp\htdocs\alsmweb"
-$OutputFilePath = "C:\xampp\htdocs\alsmweb\project_context.txt"
+$OutputFilePath = "C:\xampp\htdocs\alsmweb\_local_files\project_context.txt"
 
 # Patterns for files/directories to exclude
 $ExcludePaths = @(
@@ -21,6 +21,7 @@ $ExcludePaths = @(
     "*.git*",
     "*.vscode\*",
     "*.idea\*",
+    "\_local_files\",
     "Thumbs.db",
     "*.exe", "*.dll", "*.obj", "*.pdb",
     "*.zip", "*.tar", "*.gz", "*.rar",
