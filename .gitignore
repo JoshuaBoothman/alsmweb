@@ -1,2 +1,4 @@
 # Ignore local database backups, schemas, and other private files
 _local_files/
+# Ignore sensitive configuration files
+config/db_config.php
