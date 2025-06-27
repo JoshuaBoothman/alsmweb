@@ -4,3 +4,5 @@ _local_files/
 config/db_config.php
 # Ignore Vendor files
 vendor/
+# Ignore environment configuration files
+.env

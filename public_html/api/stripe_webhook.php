@@ -1,17 +1,36 @@
 <?php
 // /public_html/api/stripe_webhook.php
 
-// This script handles incoming webhook events from Stripe.
-
 require_once __DIR__ . '/../../config/db_config.php';
-require_once __DIR__ . '/../../vendor/autoload.php'; // Use Composer's autoload
-require_once __DIR__ . '/../../lib/functions/stripe_helpers.php'; // Our custom helper functions
+require_once __DIR__ . '/../../vendor/autoload.php'; 
+require_once __DIR__ . '/../../lib/functions/stripe_helpers.php'; 
+
+// --- SECURE SECRET HANDLING ---
+// The secret is no longer hard-coded.
+// We try to get it from a server environment variable.
+// This is the standard for live production servers.
+$endpoint_secret = $_SERVER['STRIPE_WEBHOOK_SECRET'] ?? null;
+
+// For local development, we can create a .env file (which is ignored by Git)
+// and load it. We'll do this as a fallback if the server variable isn't set.
+if (!$endpoint_secret) {
+    // This part is for your XAMPP environment only.
+    if (file_exists(__DIR__ . '/../../.env')) {
+        $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../..');
+        $dotenv->load();
+        $endpoint_secret = $_ENV['STRIPE_WEBHOOK_SECRET'] ?? null;
+    }
+}
+
+if (!$endpoint_secret) {
+    // If the secret is still not found, we cannot proceed.
+    http_response_code(500);
+    die('Webhook secret not configured.');
+}
+// --- END SECURE SECRET HANDLING ---
+
 
 \Stripe\Stripe::setApiKey(STRIPE_SECRET_KEY);
-
-// You need to set this up in your Stripe Dashboard's webhook settings
-// For local testing, you will use the Stripe CLI to get a temporary signing secret.
-$endpoint_secret = ' whsec_803ff6653cd0818ddedcf39c33605ae91eb0e849f6b867b4662cc284947d0652'; // Replace with your actual webhook signing secret
 
 $payload = @file_get_contents('php://input');
 $sig_header = $_SERVER['HTTP_STRIPE_SIGNATURE'];
@@ -22,17 +41,14 @@ try {
         $payload, $sig_header, $endpoint_secret
     );
 } catch(\UnexpectedValueException $e) {
-    // Invalid payload
     http_response_code(400);
     exit();
 } catch(\Stripe\Exception\SignatureVerificationException $e) {
-    // Invalid signature
     http_response_code(400);
     exit();
 }
 
-// --- Handle the event ---
-// We only care about a few key events to trigger a sync.
+// Handle the event
 switch ($event->type) {
     case 'invoice.payment_succeeded':
     case 'customer.subscription.updated':
@@ -41,20 +57,13 @@ switch ($event->type) {
         $stripe_customer_id = $session->customer;
 
         if ($stripe_customer_id) {
-             // Connect to the database
             $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            
-            // This is the core logic: Use the event as a TRIGGER to sync data.
-            // We do not trust the data within the event payload itself.
             syncStripeDataForCustomer($pdo, $stripe_customer_id);
         }
         break;
-    
-    // ... handle other event types
     default:
         // Unexpected event type
 }
 
-// Respond to Stripe to acknowledge receipt of the event
 http_response_code(200);
