@@ -51,6 +51,7 @@ if (session_status() === PHP_SESSION_NONE) {
                                     <li><a class="dropdown-item" href="/alsmweb/admin/manage_events.php">Manage Events</a></li>
                                     <li><a class="dropdown-item" href="/alsmweb/admin/manage_products.php">Manage Products</a></li>
                                     <li><a class="dropdown-item" href="/alsmweb/admin/manage_attributes.php">Manage Attributes</a></li>
+                                    <li><a class="dropdown-item" href="/alsmweb/admin/view_payments.php">View Payments</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="#">View Users (Coming Soon)</a></li>
                                 </ul>
