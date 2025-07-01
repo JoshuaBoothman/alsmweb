@@ -1,11 +1,14 @@
 <?php
+// public_html/checkout.php
+
 require_once '../config/db_config.php';
-// Use Composer's autoload file
 require_once __DIR__ . '/../vendor/autoload.php';
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-// --- SECURITY CHECK: User must be logged in to check out ---
+// --- SECURITY CHECKS ---
 if (!isset($_SESSION['user_id'])) {
     $_SESSION['redirect_url'] = 'checkout.php';
     $_SESSION['error_message'] = 'You must be logged in to proceed to checkout.';
@@ -13,13 +16,12 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-// --- SECURITY CHECK: Cart cannot be empty ---
 if (!isset($_SESSION['cart']) || empty($_SESSION['cart'])) {
     header('Location: merchandise.php?error=cartempty');
     exit();
 }
 
-// --- DATA FETCHING ---
+// --- INITIALIZE VARIABLES ---
 $user = null;
 $cart_items = [];
 $cart_total = 0;
@@ -34,50 +36,53 @@ try {
     $stmt_user->execute([':user_id' => $_SESSION['user_id']]);
     $user = $stmt_user->fetch(PDO::FETCH_ASSOC);
 
-    // 2. Fetch cart item details to display summary
-    $variant_ids = array_keys($_SESSION['cart']);
-    $in_clause = implode(',', array_fill(0, count($variant_ids), '?'));
+    // --- 2. PROCESS CART & CALCULATE TOTAL ---
+    // This logic is now almost identical to view_cart.php to ensure consistency.
+    $merch_variant_ids = [];
+    $booking_ids = [];
 
-    $sql_cart = "
-        SELECT
-            p.product_name,
-            pv.variant_id, pv.price AS variant_price, p.base_price,
-            (SELECT GROUP_CONCAT(CONCAT(a.name, ': ', ao.value) SEPARATOR ', ')
-             FROM product_variant_options pvo
-             JOIN attribute_options ao ON pvo.option_id = ao.option_id
-             JOIN attributes a ON ao.attribute_id = a.attribute_id
-             WHERE pvo.variant_id = pv.variant_id) AS options_string
-        FROM product_variants pv
-        JOIN products p ON pv.product_id = p.product_id
-        WHERE pv.variant_id IN ($in_clause)
-    ";
-    $stmt_cart = $pdo->prepare($sql_cart);
-    $stmt_cart->execute($variant_ids);
-    $results = $stmt_cart->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($_SESSION['cart'] as $key => $item) {
+        if ($item['type'] === 'merchandise') {
+            $merch_variant_ids[] = $item['variant_id'];
+        } elseif ($item['type'] === 'campsite') {
+            $booking_ids[] = $item['booking_id'];
+        }
+    }
 
-    // 3. Process cart data and calculate total
-    foreach ($results as $item) {
-        $variant_id = $item['variant_id'];
-        $quantity = $_SESSION['cart'][$variant_id]['quantity'];
-        $price = $item['variant_price'] ?? $item['base_price'];
-        $subtotal = $price * $quantity;
+    // Process Merchandise
+    if (!empty($merch_variant_ids)) {
+        $in_clause = implode(',', array_fill(0, count($merch_variant_ids), '?'));
+        $sql_merch = "SELECT pv.variant_id, COALESCE(pv.price, p.base_price) AS final_price FROM product_variants pv JOIN products p ON pv.product_id = p.product_id WHERE pv.variant_id IN ($in_clause)";
+        $stmt_merch = $pdo->prepare($sql_merch);
+        $stmt_merch->execute($merch_variant_ids);
+        $merch_prices = $stmt_merch->fetchAll(PDO::FETCH_KEY_PAIR);
 
-        $cart_items[] = [
-            'name' => $item['product_name'],
-            'options' => $item['options_string'],
-            'quantity' => $quantity,
-            'price' => $price
-        ];
-        $cart_total += $subtotal;
+        foreach ($merch_prices as $variant_id => $price) {
+            $cart_key = 'merch_' . $variant_id;
+            $quantity = $_SESSION['cart'][$cart_key]['quantity'];
+            $cart_total += $price * $quantity;
+        }
+    }
+
+    // Process Bookings
+    if (!empty($booking_ids)) {
+        $in_clause_bookings = implode(',', array_fill(0, count($booking_ids), '?'));
+        $sql_bookings = "SELECT booking_id, total_price FROM bookings WHERE booking_id IN ($in_clause_bookings)";
+        $stmt_bookings = $pdo->prepare($sql_bookings);
+        $stmt_bookings->execute($booking_ids);
+        $booking_prices = $stmt_bookings->fetchAll(PDO::FETCH_KEY_PAIR);
+
+        foreach ($booking_prices as $booking_id => $price) {
+            $cart_total += $price;
+        }
     }
 
 } catch (PDOException $e) {
     $error_message = "Database error: " . $e->getMessage();
 }
 
+// --- HEADER (custom, to include Stripe.js) ---
 $page_title = 'Checkout';
-// We don't include the header here because we need to add a script to the <head>
-
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -92,7 +97,7 @@ $page_title = 'Checkout';
     <script src="https://js.stripe.com/v3/"></script>
 </head>
 <body>
-    <?php require __DIR__ . '/../templates/header.php'; // We include the nav part of the header manually ?>
+    <?php require __DIR__ . '/../templates/header.php'; // Include the navigation bar ?>
 
     <main class="container mt-4">
         <h1 class="mb-4">Checkout</h1>
@@ -103,7 +108,6 @@ $page_title = 'Checkout';
             <div class="row g-5">
                 <!-- Shipping Information & Payment Form -->
                 <div class="col-md-7 col-lg-8">
-                    <!-- This form will now be handled by JavaScript -->
                     <form id="payment-form">
                         <h4 class="mb-3">Shipping Address</h4>
                         <div class="row g-3">
@@ -132,7 +136,6 @@ $page_title = 'Checkout';
                           <!-- A Stripe Element will be inserted here. -->
                         </div>
 
-                        <!-- Used to display form errors. -->
                         <div id="card-errors" role="alert" class="text-danger mt-2"></div>
 
                         <hr class="my-4">
@@ -141,44 +144,30 @@ $page_title = 'Checkout';
                     </form>
                 </div>
 
-                <!-- Order Summary Sidebar -->
+                <!-- Order Summary Sidebar (This part doesn't need the full cart details, just the total) -->
                 <div class="col-md-5 col-lg-4 order-md-last">
                     <h4 class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="text-primary">Your cart</span>
-                        <span class="badge bg-primary rounded-pill"><?= count($cart_items) ?></span>
+                        <span class="text-primary">Order Total</span>
                     </h4>
                     <ul class="list-group mb-3">
-                        <?php foreach ($cart_items as $item): ?>
-                            <li class="list-group-item d-flex justify-content-between lh-sm">
-                                <div>
-                                    <h6 class="my-0"><?= htmlspecialchars($item['name']) ?> (x<?= $item['quantity'] ?>)</h6>
-                                    <small class="text-muted"><?= htmlspecialchars($item['options']) ?></small>
-                                </div>
-                                <span class="text-muted">$<?= htmlspecialchars(number_format($item['price'] * $item['quantity'], 2)) ?></span>
-                            </li>
-                        <?php endforeach; ?>
-
-                        <li class="list-group-item d-flex justify-content-between">
+                        <li class="list-group-item d-flex justify-content-between fs-4">
                             <span>Total (AUD)</span>
                             <strong>$<?= htmlspecialchars(number_format($cart_total, 2)) ?></strong>
                         </li>
                     </ul>
+                     <a href="view_cart.php">Edit Cart</a>
                 </div>
             </div>
         <?php endif; ?>
     </main>
 
-    <?php
-        // We need to load our custom checkout script at the end
-        // We can't use the standard footer.php because it doesn't include it.
-    ?>
+    <?php // Custom footer to include the checkout-specific JavaScript ?>
     <footer>
         <p>&copy; 2025 Australian Large Scale Models</p>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/alsmweb/public_html/assets/js/main.js"></script>
-    <!-- Our new custom script for checkout -->
     <script src="/alsmweb/public_html/assets/js/checkout.js" defer></script>
 </body>
 </html>
