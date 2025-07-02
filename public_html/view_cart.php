@@ -16,12 +16,15 @@ if (isset($_SESSION['cart']) && !empty($_SESSION['cart'])) {
     // Separate cart items by type for easier processing
     $merch_variant_ids = [];
     $booking_ids = [];
+    $registration_packages = [];
 
     foreach ($_SESSION['cart'] as $key => $item) {
         if ($item['type'] === 'merchandise') {
             $merch_variant_ids[] = $item['variant_id'];
         } elseif ($item['type'] === 'campsite') {
             $booking_ids[] = $item['booking_id'];
+        } elseif ($item['type'] === 'registration') {
+            $registration_packages[$key] = $item;
         }
     }
 
@@ -68,10 +71,7 @@ if (isset($_SESSION['cart']) && !empty($_SESSION['cart'])) {
         if (!empty($booking_ids)) {
             $in_clause_bookings = implode(',', array_fill(0, count($booking_ids), '?'));
             $sql_bookings = "
-                SELECT 
-                    b.booking_id, b.check_in_date, b.check_out_date, b.total_price, b.num_guests,
-                    cs.name AS campsite_name,
-                    cg.name AS campground_name
+                SELECT b.booking_id, b.check_in_date, b.check_out_date, b.total_price, cs.name AS campsite_name, cg.name AS campground_name
                 FROM bookings b
                 JOIN campsites cs ON b.campsite_id = cs.campsite_id
                 JOIN campgrounds cg ON cs.campground_id = cg.campground_id
@@ -92,6 +92,50 @@ if (isset($_SESSION['cart']) && !empty($_SESSION['cart'])) {
                     'subtotal' => $item['total_price']
                 ];
                 $cart_total += $item['total_price'];
+            }
+        }
+
+        // 3. Process Event Registration Packages
+        if (!empty($registration_packages)) {
+            // **FIXED**: Fetch all columns and build the array manually instead of using FETCH_KEY_PAIR.
+            $sql_types = "SELECT type_id, type_name, price FROM attendee_types";
+            $stmt_types = $pdo->query($sql_types);
+            $attendee_types_raw = $stmt_types->fetchAll(PDO::FETCH_ASSOC);
+            $attendee_types = [];
+            foreach ($attendee_types_raw as $type) {
+                $attendee_types[$type['type_id']] = $type;
+            }
+
+            $sql_sub_events = "SELECT sub_event_id, cost FROM subevents";
+            $sub_event_costs = $pdo->query($sql_sub_events)->fetchAll(PDO::FETCH_KEY_PAIR);
+            
+            foreach ($registration_packages as $key => $package) {
+                $reg_total = 0;
+                $attendee_summary = [];
+
+                // Calculate cost for main attendees
+                foreach ($package['details']['attendees'] as $attendee) {
+                    $type_id = $attendee['type_id'];
+                    $reg_total += $attendee_types[$type_id]['price'] ?? 0;
+                    $attendee_summary[] = htmlspecialchars($attendee['first_name'] . ' ' . $attendee['surname']);
+                }
+
+                // Calculate cost for sub-events
+                if (!empty($package['details']['sub_events'])) {
+                    foreach ($package['details']['sub_events'] as $sub_event_id => $attendee_indices) {
+                        foreach ($attendee_indices as $index) {
+                             $reg_total += $sub_event_costs[$sub_event_id] ?? 0;
+                        }
+                    }
+                }
+
+                $cart_items[$key] = [
+                    'type' => 'registration',
+                    'name' => 'Event Registration',
+                    'options' => 'For: ' . implode(', ', $attendee_summary),
+                    'subtotal' => $reg_total
+                ];
+                $cart_total += $reg_total;
             }
         }
 
@@ -157,17 +201,24 @@ require_once __DIR__ . '/../templates/header.php';
                             <?php elseif ($item['type'] === 'campsite'): ?>
                                 <!-- CAMPSITE BOOKING ROW -->
                                 <tr>
-                                    <td style="width: 100px;">
-                                        <img src="https://placehold.co/100x100/EBF5FB/17202A?text=Booking" class="img-fluid rounded" alt="Campsite Booking">
-                                    </td>
+                                    <td style="width: 100px;"><img src="https://placehold.co/100x100/EBF5FB/17202A?text=Booking" class="img-fluid rounded" alt="Campsite Booking"></td>
                                     <td colspan="3">
                                         <strong><?= htmlspecialchars($item['name']) ?></strong><br>
                                         <small class="text-muted"><?= $item['options'] ?><br><?= $item['details'] ?></small>
                                     </td>
                                     <td>$<?= htmlspecialchars(number_format($item['subtotal'], 2)) ?></td>
-                                    <td>
-                                        <a href="cart_actions.php?action=remove&key=<?= $key ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to remove this booking from your cart?')">&times;</a>
+                                    <td><a href="cart_actions.php?action=remove&key=<?= $key ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">&times;</a></td>
+                                </tr>
+                             <?php elseif ($item['type'] === 'registration'): ?>
+                                <!-- EVENT REGISTRATION ROW -->
+                                <tr>
+                                    <td style="width: 100px;"><img src="https://placehold.co/100x100/D4EDDA/155724?text=Rego" class="img-fluid rounded" alt="Event Registration"></td>
+                                    <td colspan="3">
+                                        <strong><?= htmlspecialchars($item['name']) ?></strong><br>
+                                        <small class="text-muted"><?= $item['options'] ?></small>
                                     </td>
+                                    <td>$<?= htmlspecialchars(number_format($item['subtotal'], 2)) ?></td>
+                                    <td><a href="cart_actions.php?action=remove&key=<?= $key ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">&times;</a></td>
                                 </tr>
                             <?php endif; ?>
                         <?php endforeach; ?>

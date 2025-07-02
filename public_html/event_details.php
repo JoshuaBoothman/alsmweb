@@ -53,6 +53,11 @@ require_once __DIR__ . '/../templates/header.php';
                 </p>
                 <hr>
                 <p class="col-md-12 fs-4"><?= nl2br(htmlspecialchars($event['description'])) ?></p>
+                
+                <!-- New Registration Button -->
+                <a href="register_for_event.php?event_id=<?= $event['event_id'] ?>" class="btn btn-success btn-lg mt-3">
+                    Register for this Event
+                </a>
             </div>
         </div>
 
@@ -81,7 +86,7 @@ require_once __DIR__ . '/../templates/header.php';
                                     <td><?= date('g:i A, l, F j', strtotime($sub['date_time'])) ?></td>
                                     <td>$<?= htmlspecialchars(number_format($sub['cost'], 2)) ?></td>
                                     <td>
-                                        <a href="#" class="btn btn-success disabled">Register (Coming Soon)</a>
+                                        <button class="btn btn-outline-secondary disabled">Register (During Main Registration)</button>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

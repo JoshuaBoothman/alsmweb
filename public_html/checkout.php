@@ -23,7 +23,6 @@ if (!isset($_SESSION['cart']) || empty($_SESSION['cart'])) {
 
 // --- INITIALIZE VARIABLES ---
 $user = null;
-$cart_items = [];
 $cart_total = 0;
 $error_message = '';
 
@@ -37,15 +36,17 @@ try {
     $user = $stmt_user->fetch(PDO::FETCH_ASSOC);
 
     // --- 2. PROCESS CART & CALCULATE TOTAL ---
-    // This logic is now almost identical to view_cart.php to ensure consistency.
     $merch_variant_ids = [];
     $booking_ids = [];
+    $registration_packages = [];
 
     foreach ($_SESSION['cart'] as $key => $item) {
         if ($item['type'] === 'merchandise') {
             $merch_variant_ids[] = $item['variant_id'];
         } elseif ($item['type'] === 'campsite') {
             $booking_ids[] = $item['booking_id'];
+        } elseif ($item['type'] === 'registration') {
+            $registration_packages[$key] = $item;
         }
     }
 
@@ -76,6 +77,24 @@ try {
             $cart_total += $price;
         }
     }
+    
+    // Process Event Registrations
+    if (!empty($registration_packages)) {
+        $sql_types = "SELECT type_id, price FROM attendee_types";
+        $attendee_type_prices = $pdo->query($sql_types)->fetchAll(PDO::FETCH_KEY_PAIR);
+
+        $sql_sub_events = "SELECT sub_event_id, cost FROM subevents";
+        $sub_event_costs = $pdo->query($sql_sub_events)->fetchAll(PDO::FETCH_KEY_PAIR);
+        
+        foreach ($registration_packages as $key => $package) {
+            foreach ($package['details']['attendees'] as $attendee) {
+                $cart_total += $attendee_type_prices[$attendee['type_id']] ?? 0;
+            }
+            foreach ($package['details']['sub_events'] as $sub_event_id => $attendee_indices) {
+                $cart_total += count($attendee_indices) * ($sub_event_costs[$sub_event_id] ?? 0);
+            }
+        }
+    }
 
 } catch (PDOException $e) {
     $error_message = "Database error: " . $e->getMessage();
@@ -93,11 +112,10 @@ $page_title = 'Checkout';
     <link rel="stylesheet" href="/alsmweb/public_html/assets/css/reset.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/alsmweb/public_html/assets/css/style.css">
-    <!-- Stripe.js Library -->
     <script src="https://js.stripe.com/v3/"></script>
 </head>
 <body>
-    <?php require __DIR__ . '/../templates/header.php'; // Include the navigation bar ?>
+    <?php require __DIR__ . '/../templates/header.php'; ?>
 
     <main class="container mt-4">
         <h1 class="mb-4">Checkout</h1>
@@ -106,7 +124,6 @@ $page_title = 'Checkout';
             <div class="alert alert-danger"><?= htmlspecialchars($error_message) ?></div>
         <?php else: ?>
             <div class="row g-5">
-                <!-- Shipping Information & Payment Form -->
                 <div class="col-md-7 col-lg-8">
                     <form id="payment-form">
                         <h4 class="mb-3">Shipping Address</h4>
@@ -132,10 +149,7 @@ $page_title = 'Checkout';
                         <hr class="my-4">
 
                         <h4 class="mb-3">Payment Details</h4>
-                        <div id="card-element" class="form-control p-3">
-                          <!-- A Stripe Element will be inserted here. -->
-                        </div>
-
+                        <div id="card-element" class="form-control p-3"></div>
                         <div id="card-errors" role="alert" class="text-danger mt-2"></div>
 
                         <hr class="my-4">
@@ -144,7 +158,6 @@ $page_title = 'Checkout';
                     </form>
                 </div>
 
-                <!-- Order Summary Sidebar (This part doesn't need the full cart details, just the total) -->
                 <div class="col-md-5 col-lg-4 order-md-last">
                     <h4 class="d-flex justify-content-between align-items-center mb-3">
                         <span class="text-primary">Order Total</span>

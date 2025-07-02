@@ -27,7 +27,6 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
     $user_id = $_SESSION['user_id'];
-    // Fetch user email for Stripe customer creation if needed
     $stmt_user_email = $pdo->prepare("SELECT email FROM Users WHERE user_id = :user_id");
     $stmt_user_email->execute([':user_id' => $user_id]);
     $user_email_result = $stmt_user_email->fetch(PDO::FETCH_ASSOC);
@@ -36,15 +35,18 @@ try {
     $cart = $_SESSION['cart'];
     $total_amount_cents = 0;
 
-    // --- CALCULATE TOTAL (Corrected Logic) ---
+    // --- CALCULATE TOTAL (Now includes all item types) ---
     $merch_variant_ids = [];
     $booking_ids = [];
+    $registration_packages = [];
 
     foreach ($cart as $key => $item) {
         if ($item['type'] === 'merchandise') {
             $merch_variant_ids[] = $item['variant_id'];
         } elseif ($item['type'] === 'campsite') {
             $booking_ids[] = $item['booking_id'];
+        } elseif ($item['type'] === 'registration') {
+            $registration_packages[$key] = $item;
         }
     }
 
@@ -55,11 +57,8 @@ try {
         $stmt_merch = $pdo->prepare($sql_merch);
         $stmt_merch->execute($merch_variant_ids);
         $merch_prices = $stmt_merch->fetchAll(PDO::FETCH_KEY_PAIR);
-
         foreach ($merch_prices as $variant_id => $price) {
-            $cart_key = 'merch_' . $variant_id;
-            $quantity = $_SESSION['cart'][$cart_key]['quantity'];
-            $total_amount_cents += ($price * $quantity) * 100;
+            $total_amount_cents += ($price * $_SESSION['cart']['merch_' . $variant_id]['quantity']) * 100;
         }
     }
 
@@ -70,19 +69,34 @@ try {
         $stmt_bookings = $pdo->prepare($sql_bookings);
         $stmt_bookings->execute($booking_ids);
         $booking_prices = $stmt_bookings->fetchAll(PDO::FETCH_KEY_PAIR);
-
         foreach ($booking_prices as $booking_id => $price) {
             $total_amount_cents += $price * 100;
         }
     }
-    // --- END OF CORRECTED LOGIC ---
+    
+    // Process Event Registrations
+    if (!empty($registration_packages)) {
+        $sql_types = "SELECT type_id, price FROM attendee_types";
+        $attendee_type_prices = $pdo->query($sql_types)->fetchAll(PDO::FETCH_KEY_PAIR);
+        $sql_sub_events = "SELECT sub_event_id, cost FROM subevents";
+        $sub_event_costs = $pdo->query($sql_sub_events)->fetchAll(PDO::FETCH_KEY_PAIR);
+        
+        foreach ($registration_packages as $key => $package) {
+            foreach ($package['details']['attendees'] as $attendee) {
+                $total_amount_cents += ($attendee_type_prices[$attendee['type_id']] ?? 0) * 100;
+            }
+            foreach ($package['details']['sub_events'] as $sub_event_id => $attendee_indices) {
+                $total_amount_cents += (count($attendee_indices) * ($sub_event_costs[$sub_event_id] ?? 0)) * 100;
+            }
+        }
+    }
+    // --- END OF CALCULATION LOGIC ---
 
     if ($total_amount_cents <= 0) {
         throw new Exception("Calculated total is zero or less.");
     }
 
     $stripe_customer_id = getOrCreateStripeCustomer($pdo, $user_id, $user_email);
-
     if (!$stripe_customer_id) {
         throw new Exception("Could not retrieve or create Stripe customer.");
     }
@@ -96,7 +110,6 @@ try {
         'automatic_payment_methods' => ['enabled' => true],
     ]);
 
-    // Store the Payment Intent ID in the session so place_order.php can retrieve it
     $_SESSION['stripe_payment_intent_id'] = $paymentIntent->id;
 
     echo json_encode(['clientSecret' => $paymentIntent->client_secret]);

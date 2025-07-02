@@ -48,7 +48,9 @@ require_once __DIR__ . '/../templates/header.php';
                             at <strong><?= htmlspecialchars($event['location']) ?></strong>
                         </p>
                         <p><?= nl2br(htmlspecialchars($event['description'])) ?></p>
-                        <a href="event_detail.php?id=<?= $event['event_id'] ?>" class="btn btn-primary">View Event Details & Sub-Events</a>
+                        
+                        <!-- CORRECTED LINK -->
+                        <a href="event_details.php?id=<?= $event['event_id'] ?>" class="btn btn-primary">View Event Details & Sub-Events</a>
                         <hr>
                     </article>
                 <?php endforeach; ?>

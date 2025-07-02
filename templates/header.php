@@ -1,9 +1,13 @@
 <?php
-// We need to access session variables, so we must start the session
-// if it's not already started.
+// templates/header.php
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+// Calculate the number of items in the cart
+$cart_item_count = isset($_SESSION['cart']) ? count($_SESSION['cart']) : 0;
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -39,9 +43,15 @@ if (session_status() === PHP_SESSION_NONE) {
                 
                 <!-- Right-side navigation -->
                 <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/alsmweb/public_html/view_cart.php">
+                            View Cart <span class="badge bg-primary rounded-pill"><?= $cart_item_count ?></span>
+                        </a>
+                    </li>
+
                     <?php if (isset($_SESSION['user_id'])): ?>
                         
-                        <!-- Show Admin dropdown ONLY if user role is 'admin' -->
+                        <!-- Admin Dropdown -->
                         <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -50,15 +60,16 @@ if (session_status() === PHP_SESSION_NONE) {
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="adminDropdown">
                                     <li><a class="dropdown-item" href="/alsmweb/admin/manage_events.php">Manage Events</a></li>
                                     <li><a class="dropdown-item" href="/alsmweb/admin/manage_products.php">Manage Products</a></li>
-                                    <li><a class="dropdown-item" href="/alsmweb/admin/manage_attributes.php">Manage Attributes</a></li>
+                                    <li><a class="dropdown-item" href="/alsmweb/admin/manage_attendee_types.php">Manage Attendee Types</a></li>
+                                    <li><a class="dropdown-item" href="/alsmweb/admin/manage_bookings.php">Manage Bookings</a></li>
                                     <li><a class="dropdown-item" href="/alsmweb/admin/view_payments.php">View Payments</a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="#">View Users (Coming Soon)</a></li>
+                                    <li><a class="dropdown-item" href="/alsmweb/admin/manage_settings.php">System Settings</a></li>
                                 </ul>
                             </li>
                         <?php endif; ?>
 
-                        <!-- Show for ALL logged-in users -->
+                        <!-- User Profile & Logout -->
                         <li class="nav-item">
                             <a class="nav-link" href="/alsmweb/public_html/profile.php">My Profile</a>
                         </li>
@@ -67,7 +78,7 @@ if (session_status() === PHP_SESSION_NONE) {
                         </li>
 
                     <?php else: ?>
-                        <!-- Show for logged-out users -->
+                        <!-- Logged-out User Links -->
                         <li class="nav-item">
                             <a class="nav-link" href="/alsmweb/public_html/login.php">Login</a>
                         </li>

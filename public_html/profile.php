@@ -1,22 +1,20 @@
 <?php
 // public_html/profile.php
 
-// Must be the very first thing on the page
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 1. Page Protection: Check if the user is logged in.
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
 }
 
-// 2. Fetch User & Booking Data
 require_once __DIR__ . '/../config/db_config.php';
 
 $user = null;
 $bookings = [];
+$event_registrations = [];
 $error_message = '';
 
 try {
@@ -27,31 +25,36 @@ try {
     $user = $stmt_user->fetch(PDO::FETCH_ASSOC);
 
     if (!$user) {
-        // This could happen if the user was deleted from the DB while their session was active.
         header("Location: logout.php");
         exit();
     }
 
-    // Fetch the user's confirmed campsite bookings
-    $sql_bookings = "SELECT 
-                        b.booking_id, b.check_in_date, b.check_out_date, b.total_price, b.status,
-                        cs.name AS campsite_name,
-                        cg.name AS campground_name
+    // Fetch confirmed campsite bookings
+    $sql_bookings = "SELECT b.booking_id, b.check_in_date, b.check_out_date, b.status, cs.name AS campsite_name, cg.name AS campground_name
                     FROM bookings b
                     JOIN campsites cs ON b.campsite_id = cs.campsite_id
                     JOIN campgrounds cg ON cs.campground_id = cg.campground_id
                     WHERE b.user_id = :user_id AND b.status != 'Pending Basket'
                     ORDER BY b.check_in_date DESC";
-    
     $stmt_bookings = $pdo->prepare($sql_bookings);
     $stmt_bookings->execute(['user_id' => $_SESSION['user_id']]);
     $bookings = $stmt_bookings->fetchAll(PDO::FETCH_ASSOC);
+
+    // Fetch event registrations
+    $sql_event_regos = "SELECT er.registration_id, er.registration_date, er.total_cost, er.payment_status, e.event_name
+                        FROM eventregistrations er
+                        JOIN events e ON er.event_id = e.event_id
+                        WHERE er.user_id = :user_id
+                        ORDER BY er.registration_date DESC";
+    $stmt_event_regos = $pdo->prepare($sql_event_regos);
+    $stmt_event_regos->execute(['user_id' => $_SESSION['user_id']]);
+    $event_registrations = $stmt_event_regos->fetchAll(PDO::FETCH_ASSOC);
+
 
 } catch (PDOException $e) {
     $error_message = "Database Error: Could not retrieve your profile data. " . $e->getMessage();
 }
 
-// --- HEADER ---
 $page_title = 'Your Profile';
 require_once __DIR__ . '/../templates/header.php';
 ?>
@@ -64,12 +67,9 @@ require_once __DIR__ . '/../templates/header.php';
     <?php endif; ?>
 
     <div class="row">
-        <!-- User Details Column -->
         <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    Your Details
-                </div>
+            <div class="card mb-4">
+                <div class="card-header">Your Details</div>
                 <ul class="list-group list-group-flush">
                     <li class="list-group-item"><strong>Username:</strong> <?= htmlspecialchars($user['username']); ?></li>
                     <li class="list-group-item"><strong>Email:</strong> <?= htmlspecialchars($user['email']); ?></li>
@@ -78,9 +78,27 @@ require_once __DIR__ . '/../templates/header.php';
             </div>
         </div>
 
-        <!-- Bookings Column -->
         <div class="col-md-8">
-            <h3>My Campsite Bookings</h3>
+            <h3>My Event Registrations</h3>
+            <?php if (!empty($event_registrations)): ?>
+                <?php foreach($event_registrations as $rego): ?>
+                    <div class="card mb-3">
+                        <div class="card-header d-flex justify-content-between">
+                            <strong>Event: <?= htmlspecialchars($rego['event_name']) ?></strong>
+                            <span>Status: <span class="badge bg-success"><?= htmlspecialchars($rego['payment_status']) ?></span></span>
+                        </div>
+                        <div class="card-body">
+                           <p>Registered on: <?= date("d M Y", strtotime($rego['registration_date'])) ?></p>
+                           <p>Total Cost: $<?= number_format($rego['total_cost'], 2) ?></p>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <p>You have not registered for any events yet.</p>
+            <?php endif; ?>
+
+
+            <h3 class="mt-4">My Campsite Bookings</h3>
             <div class="table-responsive">
                 <table class="table table-striped">
                     <thead>
@@ -100,19 +118,7 @@ require_once __DIR__ . '/../templates/header.php';
                                     <td><?= htmlspecialchars($booking['campsite_name']) ?></td>
                                     <td><?= date("d M Y", strtotime($booking['check_in_date'])) ?></td>
                                     <td><?= date("d M Y", strtotime($booking['check_out_date'])) ?></td>
-                                    <td>
-                                        <span class="badge 
-                                            <?php 
-                                                switch ($booking['status']) {
-                                                    case 'Confirmed': echo 'bg-success'; break;
-                                                    case 'Cancelled': echo 'bg-danger'; break;
-                                                    case 'Completed': echo 'bg-secondary'; break;
-                                                    default: echo 'bg-warning';
-                                                }
-                                            ?>">
-                                            <?= htmlspecialchars($booking['status']) ?>
-                                        </span>
-                                    </td>
+                                    <td><span class="badge bg-success"><?= htmlspecialchars($booking['status']) ?></span></td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>

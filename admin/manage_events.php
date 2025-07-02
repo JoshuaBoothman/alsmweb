@@ -1,80 +1,77 @@
 <?php
+// admin/manage_events.php
 
 session_start();
-
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     header("Location: /alsmweb/public_html/login.php?error=unauthorized");
     exit();
 }
 
-// --- DATABASE LOGIC & PAGE SETUP BLOCK ---
-// This part connects to the DB and gets the events.
 require_once '../config/db_config.php';
 
+// --- DATA FETCHING ---
+$events = [];
+$error_message = '';
 try {
-    $sql = "SELECT event_id, event_name, start_date, end_date, location FROM Events ORDER BY start_date DESC";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute();
+    $sql = "SELECT event_id, event_name, start_date, end_date, location FROM events WHERE event_IsDeleted = 0 ORDER BY start_date DESC";
+    $stmt = $pdo->query($sql);
     $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    // If the database connection or query fails, we'll see this error.
-    die("Database Error: Could not fetch events. " . $e->getMessage());
+    $error_message = "Database Error: Could not fetch events. " . $e->getMessage();
 }
+
+// --- HEADER ---
+$page_title = 'Manage Events';
+require_once __DIR__ . '/../templates/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Events - Admin</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
+
+<div class="container mt-5">
+    <h1 class="mb-4">Manage Events</h1>
+
     <?php
-    // Check if a success message is set in the session, display it, then unset it.
     if (isset($_SESSION['success_message'])) {
-        echo '<div class="container mt-3"><div class="alert alert-success">' . htmlspecialchars($_SESSION['success_message']) . '</div></div>';
-        unset($_SESSION['success_message']); // Clear the message so it doesn't show again on refresh
+        echo '<div class="alert alert-success">' . htmlspecialchars($_SESSION['success_message']) . '</div>';
+        unset($_SESSION['success_message']);
+    }
+    if ($error_message) {
+        echo '<div class="alert alert-danger">' . $error_message . '</div>';
     }
     ?>
-    <div class="container mt-5">
-        <h1 class="mb-4">Event Management</h1>
 
-        <a href="add_event.php" class="btn btn-success mb-3">Add New Event</a>
-
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Event Name</th>
-                    <th>Start Date</th>
-                    <th>End Date</th>
-                    <th>Location</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if ($events): ?>
-                    <?php foreach ($events as $event): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($event['event_name']) ?></td>
-                            <td><?= htmlspecialchars($event['start_date']) ?></td>
-                            <td><?= htmlspecialchars($event['end_date']) ?></td>
-                            <td><?= htmlspecialchars($event['location']) ?></td>
-                            <td>
-                                <a href="edit_event.php?id=<?= $event['event_id'] ?>" class="btn btn-primary btn-sm">Edit</a>
-                                <a href="delete_event.php?id=<?= $event['event_id'] ?>" class="btn btn-danger btn-sm">Delete</a>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="5" class="text-center">No events found. Click "Add New Event" to create one.</td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
+    <div class="d-flex justify-content-end mb-3">
+        <a href="add_event.php" class="btn btn-success">Add New Event</a>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    <table class="table table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>Event Name</th>
+                <th>Dates</th>
+                <th>Location</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php if (!empty($events)): ?>
+                <?php foreach ($events as $event): ?>
+                    <tr>
+                        <td><?= htmlspecialchars($event['event_name']) ?></td>
+                        <td><?= date('d M Y', strtotime($event['start_date'])) ?> - <?= date('d M Y', strtotime($event['end_date'])) ?></td>
+                        <td><?= htmlspecialchars($event['location']) ?></td>
+                        <td>
+                            <a href="manage_sub_events.php?event_id=<?= $event['event_id'] ?>" class="btn btn-info btn-sm">Manage Sub-Events</a>
+                            <a href="edit_event.php?id=<?= $event['event_id'] ?>" class="btn btn-primary btn-sm">Edit</a>
+                            <a href="delete_event.php?id=<?= $event['event_id'] ?>" class="btn btn-danger btn-sm">Delete</a>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <tr>
+                    <td colspan="4" class="text-center">No events found. <a href="add_event.php">Add one now</a>.</td>
+                </tr>
+            <?php endif; ?>
+        </tbody>
+    </table>
+</div>
+
+<?php require_once __DIR__ . '/../templates/footer.php'; ?>

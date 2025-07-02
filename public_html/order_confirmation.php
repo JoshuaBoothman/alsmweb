@@ -7,7 +7,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // --- SECURITY CHECK: Must have come from place_order.php ---
-if (!isset($_SESSION['last_order_id']) && !isset($_SESSION['last_booking_ids'])) {
+if (!isset($_SESSION['last_order_id']) && !isset($_SESSION['last_booking_ids']) && !isset($_SESSION['last_event_registration_id'])) {
     header('Location: index.php');
     exit();
 }
@@ -15,60 +15,61 @@ if (!isset($_SESSION['last_order_id']) && !isset($_SESSION['last_booking_ids']))
 // --- INITIALIZE VARIABLES ---
 $order_id = $_SESSION['last_order_id'] ?? null;
 $booking_ids = $_SESSION['last_booking_ids'] ?? [];
+$event_reg_id = $_SESSION['last_event_registration_id'] ?? null;
 
 $merch_order = null;
 $order_items = [];
 $confirmed_bookings = [];
+$confirmed_event_rego = null;
+$confirmed_attendees = [];
 $error_message = '';
-$grand_total = 0; // Initialize grand total
+$grand_total = 0;
 
 try {
-    // 1. Fetch Merchandise Order Details (if an order was made)
+    // 1. Fetch Merchandise Order Details
     if ($order_id) {
         $stmt_order = $pdo->prepare("SELECT * FROM orders WHERE order_id = :order_id AND user_id = :user_id");
         $stmt_order->execute([':order_id' => $order_id, ':user_id' => $_SESSION['user_id']]);
         $merch_order = $stmt_order->fetch(PDO::FETCH_ASSOC);
-
         if ($merch_order) {
-            $grand_total += $merch_order['total_amount']; // Add to grand total
-            $sql_items = "
-                SELECT 
-                    oi.quantity, oi.price_at_purchase,
-                    p.product_name,
-                    (SELECT GROUP_CONCAT(CONCAT(a.name, ': ', ao.value) SEPARATOR ', ') 
-                     FROM product_variant_options pvo
-                     JOIN attribute_options ao ON pvo.option_id = ao.option_id
-                     JOIN attributes a ON ao.attribute_id = a.attribute_id
-                     WHERE pvo.variant_id = oi.variant_id) AS options_string
-                FROM orderitems oi
-                JOIN products p ON oi.product_id = p.product_id
-                WHERE oi.order_id = :order_id";
-            
+            $grand_total += $merch_order['total_amount'];
+            $sql_items = "SELECT oi.quantity, oi.price_at_purchase, p.product_name, (SELECT GROUP_CONCAT(CONCAT(a.name, ': ', ao.value) SEPARATOR ', ') FROM product_variant_options pvo JOIN attribute_options ao ON pvo.option_id = ao.option_id JOIN attributes a ON ao.attribute_id = a.attribute_id WHERE pvo.variant_id = oi.variant_id) AS options_string FROM orderitems oi JOIN products p ON oi.product_id = p.product_id WHERE oi.order_id = :order_id";
             $stmt_items = $pdo->prepare($sql_items);
             $stmt_items->execute([':order_id' => $order_id]);
             $order_items = $stmt_items->fetchAll(PDO::FETCH_ASSOC);
         }
     }
 
-    // 2. Fetch Confirmed Booking Details (if bookings were made)
+    // 2. Fetch Confirmed Booking Details
     if (!empty($booking_ids)) {
         $in_clause = implode(',', array_fill(0, count($booking_ids), '?'));
-        $sql_bookings = "
-            SELECT b.check_in_date, b.check_out_date, b.total_price, cs.name AS campsite_name, cg.name AS campground_name
-            FROM bookings b
-            JOIN campsites cs ON b.campsite_id = cs.campsite_id
-            JOIN campgrounds cg ON cs.campground_id = cg.campground_id
-            WHERE b.booking_id IN ($in_clause) AND b.user_id = ?
-        ";
+        $sql_bookings = "SELECT b.check_in_date, b.check_out_date, b.total_price, cs.name AS campsite_name, cg.name AS campground_name FROM bookings b JOIN campsites cs ON b.campsite_id = cs.campsite_id JOIN campgrounds cg ON cs.campground_id = cg.campground_id WHERE b.booking_id IN ($in_clause) AND b.user_id = ?";
         $stmt_bookings = $pdo->prepare($sql_bookings);
         $params = $booking_ids;
         $params[] = $_SESSION['user_id'];
         $stmt_bookings->execute($params);
         $confirmed_bookings = $stmt_bookings->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Add booking totals to the grand total
         foreach ($confirmed_bookings as $booking) {
             $grand_total += $booking['total_price'];
+        }
+    }
+
+    // 3. Fetch Event Registration Details
+    if ($event_reg_id) {
+        $sql_rego = "SELECT er.total_cost, e.event_name FROM eventregistrations er JOIN events e ON er.event_id = e.event_id WHERE er.registration_id = ? AND er.user_id = ?";
+        $stmt_rego = $pdo->prepare($sql_rego);
+        $stmt_rego->execute([$event_reg_id, $_SESSION['user_id']]);
+        $confirmed_event_rego = $stmt_rego->fetch(PDO::FETCH_ASSOC);
+        
+        if($confirmed_event_rego) {
+            // Note: The grand total calculation was already done in place_order.php and stored in the eventregistrations table.
+            // We can just use that value.
+            // $grand_total += $confirmed_event_rego['total_cost'];
+            
+            $sql_attendees = "SELECT a.first_name, a.surname, at.type_name FROM attendees a JOIN attendee_types at ON a.type_id = at.type_id WHERE a.eventreg_id = ?";
+            $stmt_attendees = $pdo->prepare($sql_attendees);
+            $stmt_attendees->execute([$event_reg_id]);
+            $confirmed_attendees = $stmt_attendees->fetchAll(PDO::FETCH_ASSOC);
         }
     }
 
@@ -77,8 +78,7 @@ try {
 }
 
 // --- CLEANUP ---
-unset($_SESSION['last_order_id']);
-unset($_SESSION['last_booking_ids']);
+unset($_SESSION['last_order_id'], $_SESSION['last_booking_ids'], $_SESSION['last_event_registration_id']);
 
 // --- HEADER ---
 $page_title = 'Purchase Confirmation';
@@ -90,7 +90,6 @@ require_once __DIR__ . '/../templates/header.php';
         <?php if ($error_message): ?>
             <h1 class="text-danger">Error</h1>
             <p class="lead"><?= htmlspecialchars($error_message) ?></p>
-            <a href="index.php" class="btn btn-primary">Go to Homepage</a>
         <?php else: ?>
             <h1 class="text-success">Thank You!</h1>
             <h2>Your Purchase is Confirmed</h2>
@@ -100,6 +99,25 @@ require_once __DIR__ . '/../templates/header.php';
     
     <div class="row justify-content-center">
         <div class="col-md-8">
+            <!-- Event Registration Summary -->
+            <?php if ($confirmed_event_rego && !empty($confirmed_attendees)): ?>
+                <h4 class="mb-3">Event Registration Summary (For: <?= htmlspecialchars($confirmed_event_rego['event_name']) ?>)</h4>
+                <ul class="list-group mb-4">
+                    <?php foreach ($confirmed_attendees as $attendee): ?>
+                        <li class="list-group-item d-flex justify-content-between lh-sm">
+                            <div>
+                                <h6 class="my-0"><?= htmlspecialchars($attendee['first_name'] . ' ' . $attendee['surname']) ?></h6>
+                                <small class="text-muted"><?= htmlspecialchars($attendee['type_name']) ?></small>
+                            </div>
+                        </li>
+                    <?php endforeach; ?>
+                     <li class="list-group-item d-flex justify-content-between bg-light">
+                        <span class="fw-bold">Registration Total</span>
+                        <strong class="fw-bold">$<?= htmlspecialchars(number_format($confirmed_event_rego['total_cost'], 2)) ?></strong>
+                    </li>
+                </ul>
+            <?php endif; ?>
+
             <!-- Merchandise Order Summary -->
             <?php if ($merch_order && !empty($order_items)): ?>
                 <h4 class="mb-3">Merchandise Order Summary (Order #<?= htmlspecialchars($merch_order['order_id']) ?>)</h4>
@@ -113,10 +131,6 @@ require_once __DIR__ . '/../templates/header.php';
                             <span class="text-muted">$<?= htmlspecialchars(number_format($item['price_at_purchase'] * $item['quantity'], 2)) ?></span>
                         </li>
                     <?php endforeach; ?>
-                    <li class="list-group-item d-flex justify-content-between bg-light">
-                        <span class="fw-bold">Merchandise Total</span>
-                        <strong class="fw-bold">$<?= htmlspecialchars(number_format($merch_order['total_amount'], 2)) ?></strong>
-                    </li>
                 </ul>
             <?php endif; ?>
 
@@ -129,9 +143,7 @@ require_once __DIR__ . '/../templates/header.php';
                             <div>
                                 <h6 class="my-0"><?= htmlspecialchars($booking['campsite_name']) ?></h6>
                                 <small class="text-muted"><?= htmlspecialchars($booking['campground_name']) ?></small>
-                                <small class="d-block text-muted">
-                                    <?= date('D, M j Y', strtotime($booking['check_in_date'])) ?> to <?= date('D, M j Y', strtotime($booking['check_out_date'])) ?>
-                                </small>
+                                <small class="d-block text-muted"><?= date('D, M j Y', strtotime($booking['check_in_date'])) ?> to <?= date('D, M j Y', strtotime($booking['check_out_date'])) ?></small>
                             </div>
                             <span class="text-muted fw-bold">$<?= htmlspecialchars(number_format($booking['total_price'], 2)) ?></span>
                         </li>
@@ -147,6 +159,7 @@ require_once __DIR__ . '/../templates/header.php';
                     <strong class="fw-bold text-success">$<?= htmlspecialchars(number_format($grand_total, 2)) ?></strong>
                 </div>
             <?php endif; ?>
+
         </div>
     </div>
 </main>
