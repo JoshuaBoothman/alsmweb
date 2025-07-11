@@ -60,10 +60,11 @@ $cart_item_count = isset($_SESSION['cart']) ? count($_SESSION['cart']) : 0;
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="adminDropdown">
                                     <li><a class="dropdown-item" href="/alsmweb/admin/manage_events.php">Manage Events</a></li>
                                     <li><a class="dropdown-item" href="/alsmweb/admin/manage_products.php">Manage Products</a></li>
-                                    <li><a class="dropdown-item" href="/alsmweb/admin/manage_attendee_types.php">Manage Attendee Types</a></li>
+                                    <li><a class="dropdown-item" href="/alsmweb/admin/manage_campgrounds.php">Manage Campgrounds</a></li>
                                     <li><a class="dropdown-item" href="/alsmweb/admin/manage_bookings.php">Manage Bookings</a></li>
                                     <li><a class="dropdown-item" href="/alsmweb/admin/view_payments.php">View Payments</a></li>
                                     <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="/alsmweb/admin/manage_attendee_types.php">Attendee Types</a></li>
                                     <li><a class="dropdown-item" href="/alsmweb/admin/manage_settings.php">System Settings</a></li>
                                 </ul>
                             </li>
