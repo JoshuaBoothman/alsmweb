@@ -8,6 +8,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 
 // --- CONFIGURATION AND DATABASE CONNECTION ---
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php';
 
 // --- INITIALIZE VARIABLES ---
 $error_message = '';
@@ -46,6 +47,9 @@ function getVariantDetails($pdo, $variant_id) {
 
 // --- FORM PROCESSING LOGIC (POST REQUEST) ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Validate the CSRF token to prevent cross-site request forgery attacks.
+    validate_csrf_token();
+
     $variant_id_post = filter_input(INPUT_POST, 'variant_id', FILTER_VALIDATE_INT);
 
     if ($variant_id_post === $variant_id) {
@@ -81,38 +85,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 }
+
+// Generate a CSRF token for the confirmation form.
+generate_csrf_token();
+
+// --- HEADER ---
+$page_title = 'Delete Variant';
+require_once __DIR__ . '/../templates/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delete Variant - Admin</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container mt-5">
-        <h1 class="mb-4">Delete Variant</h1>
+<div class="container mt-5">
+    <h1 class="mb-4">Delete Variant</h1>
 
-        <?php if ($error_message): ?>
-            <div class="alert alert-danger"><?= htmlspecialchars($error_message) ?></div>
-            <a href="manage_variants.php?product_id=<?= $product_id ?>" class="btn btn-secondary">Back to Variants</a>
-        <?php else: ?>
-            <div class="alert alert-warning">
-                <h4 class="alert-heading">Are you sure?</h4>
-                <p>You are about to permanently delete the variant with the following options: <strong><?= htmlspecialchars($variant_details) ?></strong>.</p>
-                <hr>
-                <p class="mb-0">This action cannot be undone.</p>
-            </div>
+    <?php if ($error_message): ?>
+        <div class="alert alert-danger"><?= htmlspecialchars($error_message) ?></div>
+        <a href="manage_variants.php?product_id=<?= $product_id ?>" class="btn btn-secondary">Back to Variants</a>
+    <?php else: ?>
+        <div class="alert alert-warning">
+            <h4 class="alert-heading">Are you sure?</h4>
+            <p>You are about to permanently delete the variant with the following options: <strong><?= htmlspecialchars($variant_details) ?></strong>.</p>
+            <hr>
+            <p class="mb-0">This action cannot be undone.</p>
+        </div>
 
-            <form action="delete_variant.php?id=<?= $variant_id ?>&product_id=<?= $product_id ?>" method="POST">
-                <input type="hidden" name="variant_id" value="<?= htmlspecialchars($variant_id) ?>">
-                <button type="submit" class="btn btn-danger">Confirm Delete</button>
-                <a href="manage_variants.php?product_id=<?= $product_id ?>" class="btn btn-secondary">Cancel</a>
-            </form>
-        <?php endif; ?>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+        <form action="delete_variant.php?id=<?= $variant_id ?>&product_id=<?= $product_id ?>" method="POST">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+            <input type="hidden" name="variant_id" value="<?= htmlspecialchars($variant_id) ?>">
+            <button type="submit" class="btn btn-danger">Confirm Delete</button>
+            <a href="manage_variants.php?product_id=<?= $product_id ?>" class="btn btn-secondary">Cancel</a>
+        </form>
+    <?php endif; ?>
+</div>
+<?php require_once __DIR__ . '/../templates/footer.php'; ?>

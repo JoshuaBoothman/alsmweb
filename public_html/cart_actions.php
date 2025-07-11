@@ -1,8 +1,9 @@
 <?php
 // public_html/cart_actions.php
 
-// --- CONFIGURATION AND SESSION START ---
+// --- CONFIGURATION AND HELPERS ---
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php'; // Include CSRF helpers
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -18,31 +19,25 @@ $action = $_POST['action'] ?? $_GET['action'] ?? null;
 
 // --- HANDLE ADD EVENT REGISTRATION TO CART ---
 if ($action === 'add_registration_to_cart' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    // 1. Security Check: A registration must be in progress.
+    validate_csrf_token(); // CSRF Check
+
     if (!isset($_SESSION['event_registration_in_progress'])) {
         header("Location: events.php?error=noreginprogress");
         exit();
     }
     
-    // 2. Get the registration data from the session.
     $registration_data = $_SESSION['event_registration_in_progress'];
-    
-    // 3. Get the sub-event selections from the form submission.
     $sub_event_selections = $_POST['sub_event_registrations'] ?? [];
     $registration_data['sub_events'] = $sub_event_selections;
     
-    // 4. Add the complete registration package to the main cart.
-    // We use a unique key to identify this registration package.
     $cart_item_key = 'registration_' . $registration_data['event_id'];
     $_SESSION['cart'][$cart_item_key] = [
         'type' => 'registration',
         'details' => $registration_data
     ];
     
-    // 5. Clean up the temporary session variable.
     unset($_SESSION['event_registration_in_progress']);
     
-    // 6. Redirect to the cart to view the result.
     header('Location: view_cart.php?status=registration_added');
     exit();
 }
@@ -50,6 +45,8 @@ if ($action === 'add_registration_to_cart' && $_SERVER['REQUEST_METHOD'] === 'PO
 
 // --- HANDLE ADD CAMPSITE BOOKING TO CART ---
 if ($action === 'add_booking' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    validate_csrf_token(); // CSRF Check
+
     if (!isset($_SESSION['user_id'])) {
         header('Location: login.php?error=loginrequired');
         exit();
@@ -127,11 +124,13 @@ if ($action === 'add_booking' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // --- HANDLE ADD MERCHANDISE TO CART ---
 if ($action === 'add' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    validate_csrf_token(); // CSRF Check
+
     $product_id = filter_input(INPUT_POST, 'product_id', FILTER_VALIDATE_INT);
-    $quantity = filter_input(INPUT_POST, 'quantity', FILTER_VALIDATE_INT);
+    $quantity_to_add = filter_input(INPUT_POST, 'quantity', FILTER_VALIDATE_INT);
     $selected_options_post = $_POST['options'] ?? [];
 
-    if (!$product_id || !$quantity || $quantity <= 0) {
+    if (!$product_id || !$quantity_to_add || $quantity_to_add <= 0) {
         header('Location: merchandise.php?error=invaliddata');
         exit();
     }
@@ -141,25 +140,34 @@ if ($action === 'add' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!empty($selected_options_post)) {
         try {
+            // Find the variant_id based on selected options (your existing logic is good)
             $option_values = array_values($selected_options_post);
             $option_count = count($option_values);
             $placeholders = implode(',', array_fill(0, $option_count, '?'));
-            $sql = "SELECT pvo.variant_id
-                    FROM product_variant_options pvo
-                    JOIN attribute_options ao ON pvo.option_id = ao.option_id
-                    WHERE ao.value IN ($placeholders) AND pvo.variant_id IN (
-                        SELECT variant_id FROM product_variants WHERE product_id = ?
-                    )
-                    GROUP BY pvo.variant_id
-                    HAVING COUNT(DISTINCT pvo.option_id) = ?";
-            $params = $option_values;
-            $params[] = $product_id;
-            $params[] = $option_count;
-            $stmt = $pdo->prepare($sql);
+            $sql_find_variant = "SELECT pv.variant_id, pv.stock_quantity
+                                FROM product_variant_options pvo
+                                JOIN attribute_options ao ON pvo.option_id = ao.option_id
+                                JOIN product_variants pv ON pvo.variant_id = pv.variant_id
+                                WHERE ao.value IN ($placeholders) AND pv.product_id = ?
+                                GROUP BY pv.variant_id, pv.stock_quantity
+                                HAVING COUNT(DISTINCT pvo.option_id) = ?";
+            $params = array_merge($option_values, [$product_id, $option_count]);
+            $stmt = $pdo->prepare($sql_find_variant);
             $stmt->execute($params);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($result) {
-                $variant_id = $result['variant_id'];
+            $variant_data = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($variant_data) {
+                $variant_id = $variant_data['variant_id'];
+                $stock_available = $variant_data['stock_quantity'];
+                
+                // **NEW**: Stock Check Logic
+                $cart_item_key = 'merch_' . $variant_id;
+                $quantity_in_cart = $_SESSION['cart'][$cart_item_key]['quantity'] ?? 0;
+                
+                if (($quantity_in_cart + $quantity_to_add) > $stock_available) {
+                    $error = "Cannot add to cart. Only {$stock_available} item(s) in stock.";
+                }
+
             } else {
                 $error = "The selected combination of options is not available.";
             }
@@ -167,19 +175,20 @@ if ($action === 'add' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = "Database error finding variant: " . $e->getMessage();
         }
     } else {
+        // This logic needs adjustment if you have products WITHOUT variants
         $error = "This product has required options that were not selected.";
     }
 
     if (!$error && $variant_id) {
         $cart_item_key = 'merch_' . $variant_id;
         if (isset($_SESSION['cart'][$cart_item_key])) {
-            $_SESSION['cart'][$cart_item_key]['quantity'] += $quantity;
+            $_SESSION['cart'][$cart_item_key]['quantity'] += $quantity_to_add;
         } else {
             $_SESSION['cart'][$cart_item_key] = [
                 'type' => 'merchandise',
                 'product_id' => $product_id,
                 'variant_id' => $variant_id,
-                'quantity' => $quantity
+                'quantity' => $quantity_to_add
             ];
         }
         header('Location: view_cart.php?status=added');
@@ -193,19 +202,33 @@ if ($action === 'add' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // --- HANDLE UPDATE MERCHANDISE QUANTITY ---
 if ($action === 'update' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    $cart_key = $_POST['cart_key'];
-    $quantity = filter_input(INPUT_POST, 'quantity', FILTER_VALIDATE_INT);
+    validate_csrf_token(); // CSRF Check
 
-    if ($cart_key && $quantity > 0 && isset($_SESSION['cart'][$cart_key]) && $_SESSION['cart'][$cart_key]['type'] === 'merchandise') {
-        $_SESSION['cart'][$cart_key]['quantity'] = $quantity;
+    $cart_key = $_POST['cart_key'];
+    $new_quantity = filter_input(INPUT_POST, 'quantity', FILTER_VALIDATE_INT);
+
+    if ($cart_key && $new_quantity > 0 && isset($_SESSION['cart'][$cart_key]) && $_SESSION['cart'][$cart_key]['type'] === 'merchandise') {
+        // **NEW**: Stock check on update
+        $variant_id = $_SESSION['cart'][$cart_key]['variant_id'];
+        $stmt_stock = $pdo->prepare("SELECT stock_quantity FROM product_variants WHERE variant_id = ?");
+        $stmt_stock->execute([$variant_id]);
+        $stock_available = $stmt_stock->fetchColumn();
+
+        if ($new_quantity <= $stock_available) {
+            $_SESSION['cart'][$cart_key]['quantity'] = $new_quantity;
+        } else {
+            $_SESSION['error_message'] = "Update failed. Only {$stock_available} item(s) in stock.";
+        }
     }
     header('Location: view_cart.php?status=updated');
     exit();
 }
 
 // --- HANDLE REMOVE ITEM FROM CART (MERCH, BOOKING, OR REGISTRATION) ---
-if ($action === 'remove' && isset($_GET['key'])) {
-    $cart_key = $_GET['key'];
+if ($action === 'remove' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    validate_csrf_token(); // CSRF Check
+
+    $cart_key = $_POST['key'];
     
     if (isset($_SESSION['cart'][$cart_key])) {
         $item_type = $_SESSION['cart'][$cart_key]['type'];
@@ -215,7 +238,6 @@ if ($action === 'remove' && isset($_GET['key'])) {
             $stmt_del = $pdo->prepare("DELETE FROM bookings WHERE booking_id = :id AND status = 'Pending Basket'");
             $stmt_del->execute([':id' => $booking_id]);
         }
-        // If it's a registration, there's no database record to delete yet, so we just remove from session.
         
         unset($_SESSION['cart'][$cart_key]);
     }

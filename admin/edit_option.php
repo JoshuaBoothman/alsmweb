@@ -8,6 +8,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 
 // --- CONFIGURATION AND DATABASE CONNECTION ---
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php';
 
 // --- INITIALIZE VARIABLES ---
 $error_message = '';
@@ -24,6 +25,9 @@ if (!$option_id || !$attribute_id) {
 
 // --- FORM PROCESSING LOGIC (POST REQUEST) ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Validate the CSRF token to prevent cross-site request forgery attacks.
+    validate_csrf_token();
+
     // Re-validate IDs from hidden form fields
     $option_id_post = filter_input(INPUT_POST, 'option_id', FILTER_VALIDATE_INT);
     $attribute_id_post = filter_input(INPUT_POST, 'attribute_id', FILTER_VALIDATE_INT);
@@ -101,6 +105,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $error_message = "Database Error: Could not fetch details. " . $e->getMessage();
     }
 }
+
+// Generate a CSRF token for the form to be displayed.
+generate_csrf_token();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -119,6 +126,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <h1 class="mb-4">Edit Option for: <strong><?= htmlspecialchars($attribute['name']) ?></strong></h1>
             
             <form action="edit_option.php?id=<?= $option_id ?>&attribute_id=<?= $attribute_id ?>" method="POST">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                 <input type="hidden" name="option_id" value="<?= htmlspecialchars($option['option_id']) ?>">
                 <input type="hidden" name="attribute_id" value="<?= htmlspecialchars($attribute_id) ?>">
                 <input type="hidden" name="attribute_name" value="<?= htmlspecialchars($attribute['name']) ?>">

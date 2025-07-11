@@ -8,6 +8,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 
 // --- CONFIGURATION AND DATABASE CONNECTION ---
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php';
 
 // --- INITIALIZE VARIABLES ---
 $error_message = '';
@@ -16,6 +17,9 @@ $attribute_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 
 // --- FORM PROCESSING LOGIC (POST REQUEST) ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Validate the CSRF token to prevent cross-site request forgery attacks.
+    validate_csrf_token();
+
     $attribute_id = filter_input(INPUT_POST, 'attribute_id', FILTER_VALIDATE_INT);
     $attribute_name = trim($_POST['name']);
     $errors = [];
@@ -79,40 +83,36 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 } else {
     $error_message = "No Attribute ID provided.";
 }
+
+// Generate a CSRF token for the form to be displayed.
+generate_csrf_token();
+
+// --- HEADER ---
+$page_title = 'Edit Attribute';
+require_once __DIR__ . '/../templates/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Attribute - Admin</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container mt-5">
-        <h1 class="mb-4">Edit Attribute</h1>
+<div class="container mt-5">
+    <h1 class="mb-4">Edit Attribute</h1>
 
-        <?php if ($error_message): ?>
-            <div class="alert alert-danger"><?= $error_message ?></div>
-        <?php endif; ?>
+    <?php if ($error_message): ?>
+        <div class="alert alert-danger"><?= $error_message ?></div>
+    <?php endif; ?>
 
-        <?php if ($attribute): ?>
-        <form action="edit_attribute.php?id=<?= htmlspecialchars($attribute_id) ?>" method="POST">
-            <input type="hidden" name="attribute_id" value="<?= htmlspecialchars($attribute['attribute_id']) ?>">
-            
-            <div class="mb-3">
-                <label for="name" class="form-label">Attribute Name</label>
-                <input type="text" class="form-control" id="name" name="name" value="<?= htmlspecialchars($attribute['name']) ?>" required>
-            </div>
+    <?php if ($attribute): ?>
+    <form action="edit_attribute.php?id=<?= htmlspecialchars($attribute_id) ?>" method="POST">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+        <input type="hidden" name="attribute_id" value="<?= htmlspecialchars($attribute['attribute_id']) ?>">
+        
+        <div class="mb-3">
+            <label for="name" class="form-label">Attribute Name</label>
+            <input type="text" class="form-control" id="name" name="name" value="<?= htmlspecialchars($attribute['name']) ?>" required>
+        </div>
 
-            <button type="submit" class="btn btn-primary">Update Attribute</button>
-            <a href="manage_attributes.php" class="btn btn-secondary">Cancel</a>
-        </form>
-        <?php else: ?>
-            <a href="manage_attributes.php" class="btn btn-primary">Back to Attribute Management</a>
-        <?php endif; ?>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+        <button type="submit" class="btn btn-primary">Update Attribute</button>
+        <a href="manage_attributes.php" class="btn btn-secondary">Cancel</a>
+    </form>
+    <?php else: ?>
+        <a href="manage_attributes.php" class="btn btn-primary">Back to Attribute Management</a>
+    <?php endif; ?>
+</div>
+<?php require_once __DIR__ . '/../templates/footer.php'; ?>

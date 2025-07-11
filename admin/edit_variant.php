@@ -8,6 +8,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 
 // --- CONFIGURATION AND DATABASE CONNECTION ---
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php';
 
 // --- INITIALIZE VARIABLES ---
 $error_message = '';
@@ -61,6 +62,9 @@ if ($_SERVER["REQUEST_METHOD"] != "POST") {
 
 // --- FORM PROCESSING LOGIC (POST REQUEST) ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Validate the CSRF token to prevent cross-site request forgery attacks.
+    validate_csrf_token();
+
     // Re-fetch product name for context in case of error
     $stmt_product = $pdo->prepare("SELECT product_name FROM products WHERE product_id = :product_id");
     $stmt_product->execute([':product_id' => $product_id]);
@@ -132,6 +136,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $variant = $_POST;
     $selected_option_ids = $selected_options;
 }
+
+// Generate a CSRF token for the form to be displayed.
+generate_csrf_token();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -151,6 +158,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <h1 class="mb-4">Edit Variant for: <strong><?= htmlspecialchars($product['product_name']) ?></strong></h1>
 
             <form action="edit_variant.php?id=<?= $variant_id ?>&product_id=<?= $product_id ?>" method="POST">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                 <input type="hidden" name="variant_id" value="<?= $variant_id ?>">
 
                 <div class="card p-3 mb-4">

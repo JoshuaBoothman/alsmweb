@@ -6,11 +6,31 @@ header('Content-Type: application/json');
 require_once __DIR__ . '/../../config/db_config.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
 require_once __DIR__ . '/../../lib/functions/stripe_helpers.php';
+// Note: security_helpers.php is not needed here as we do custom validation
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// --- NEW: CSRF Validation for JSON request ---
+// Read the JSON data sent from the JavaScript fetch() call
+$json_data = json_decode(file_get_contents('php://input'), true);
+
+// Check if the token sent from JS matches the one in the session.
+if (
+    !isset($json_data['csrf_token']) ||
+    !isset($_SESSION['csrf_token']) ||
+    !hash_equals($_SESSION['csrf_token'], $json_data['csrf_token'])
+) {
+    http_response_code(403); // Forbidden
+    echo json_encode(['error' => 'Invalid CSRF token.']);
+    exit();
+}
+// We do not unset the token here, allowing the user to retry payment if needed.
+// The token will be validated and unset in place_order.php after a successful payment.
+
+
+// --- Security Checks ---
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
     echo json_encode(['error' => 'User not authenticated.']);
@@ -104,7 +124,7 @@ try {
     \Stripe\Stripe::setApiKey(STRIPE_SECRET_KEY);
 
     $paymentIntent = \Stripe\PaymentIntent::create([
-        'amount' => $total_amount_cents,
+        'amount' => round($total_amount_cents),
         'currency' => 'aud',
         'customer' => $stripe_customer_id,
         'automatic_payment_methods' => ['enabled' => true],

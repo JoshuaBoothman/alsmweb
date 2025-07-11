@@ -8,6 +8,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 }
 
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php';
 
 // --- INITIALIZE VARIABLES ---
 $error_message = '';
@@ -21,6 +22,9 @@ if (!$event_id) {
 
 // --- FORM PROCESSING LOGIC ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Validate the CSRF token to prevent cross-site request forgery attacks.
+    validate_csrf_token();
+
     $event_id = filter_input(INPUT_POST, 'event_id', FILTER_VALIDATE_INT);
     $event_name = trim($_POST['event_name']);
     $start_date = trim($_POST['start_date']);
@@ -78,6 +82,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 
+// Generate a CSRF token for the form to be displayed.
+generate_csrf_token();
+
 // --- HEADER ---
 $page_title = 'Edit Event';
 require_once __DIR__ . '/../templates/header.php';
@@ -92,6 +99,7 @@ require_once __DIR__ . '/../templates/header.php';
 
     <?php if ($event): ?>
     <form action="edit_event.php?id=<?= htmlspecialchars($event_id) ?>" method="POST">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
         <input type="hidden" name="event_id" value="<?= htmlspecialchars($event['event_id']) ?>">
         
         <div class="mb-3">

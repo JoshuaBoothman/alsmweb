@@ -11,6 +11,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 // --- CONFIGURATION AND DATABASE CONNECTION ---
 // We need to connect to the database to insert the new event data.
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php';
 
 // --- FORM PROCESSING LOGIC ---
 // These variables will hold any success or error messages to display to the admin.
@@ -19,6 +20,9 @@ $success_message = '';
 
 // Check if the request method is POST, which means the form has been submitted.
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Validate the CSRF token to prevent cross-site request forgery attacks.
+    validate_csrf_token();
+
     // 1. Retrieve and trim the form data
     $event_name = trim($_POST['event_name']);
     $start_date = trim($_POST['start_date']);
@@ -59,6 +63,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 }
+
+// Generate a CSRF token to be included in the form.
+generate_csrf_token();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -80,6 +87,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <?php endif; ?>
 
         <form action="add_event.php" method="POST">
+            <!-- CSRF Token for security -->
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
             <div class="mb-3">
                 <label for="event_name" class="form-label">Event Name</label>
                 <input type="text" class="form-control" id="event_name" name="event_name" required>

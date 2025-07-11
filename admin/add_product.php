@@ -8,6 +8,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 
 // --- CONFIGURATION AND DATABASE CONNECTION ---
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php';
 
 // --- INITIALIZE VARIABLES ---
 $error_message = '';
@@ -25,6 +26,9 @@ try {
 // --- FORM PROCESSING LOGIC ---
 // This block only runs when the form is submitted via POST.
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Validate the CSRF token to prevent cross-site request forgery attacks.
+    validate_csrf_token();
+
     // 1. Retrieve and sanitize form data
     $product_name = trim($_POST['product_name']);
     $description = trim($_POST['description']);
@@ -73,6 +77,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $error_message = implode('<br>', $errors);
     }
 }
+
+// Generate a CSRF token to be included in the form.
+generate_csrf_token();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -96,6 +103,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
         <?php else: ?>
         <form action="add_product.php" method="POST">
+            <!-- CSRF Token for security -->
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
             <div class="mb-3">
                 <label for="product_name" class="form-label">Product Name</label>
                 <input type="text" class="form-control" id="product_name" name="product_name" value="<?= isset($_POST['product_name']) ? htmlspecialchars($_POST['product_name']) : '' ?>" required>

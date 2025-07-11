@@ -8,6 +8,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 
 // --- CONFIGURATION AND DATABASE CONNECTION ---
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php';
 
 // --- INITIALIZE VARIABLES ---
 $error_message = '';
@@ -56,6 +57,9 @@ try {
 
 // --- FORM PROCESSING LOGIC ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Validate the CSRF token to prevent cross-site request forgery attacks.
+    validate_csrf_token();
+
     $product_id_post = filter_input(INPUT_POST, 'product_id', FILTER_VALIDATE_INT);
     $sku = trim($_POST['sku']);
     $price = trim($_POST['price']);
@@ -109,6 +113,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $error_message = implode("<br>", $errors);
     }
 }
+
+// Generate a CSRF token to be included in the form.
+generate_csrf_token();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -128,6 +135,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <h1 class="mb-4">Add Variant for: <strong><?= htmlspecialchars($product['product_name']) ?></strong></h1>
 
             <form action="add_variant.php?product_id=<?= $product_id ?>" method="POST">
+                <!-- CSRF Token for security -->
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                 <input type="hidden" name="product_id" value="<?= $product_id ?>">
 
                 <div class="card p-3 mb-4">

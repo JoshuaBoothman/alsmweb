@@ -2,6 +2,7 @@
 // public_html/view_cart.php
 
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php'; // Include CSRF helpers
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -9,7 +10,9 @@ if (session_status() === PHP_SESSION_NONE) {
 // --- INITIALIZE VARIABLES ---
 $cart_items = [];
 $cart_total = 0;
-$error_message = '';
+// Use session for error messages to persist after redirects
+$error_message = $_SESSION['error_message'] ?? '';
+unset($_SESSION['error_message']); // Clear the message after displaying it
 
 // --- PROCESS CART ---
 if (isset($_SESSION['cart']) && !empty($_SESSION['cart'])) {
@@ -97,7 +100,6 @@ if (isset($_SESSION['cart']) && !empty($_SESSION['cart'])) {
 
         // 3. Process Event Registration Packages
         if (!empty($registration_packages)) {
-            // **FIXED**: Fetch all columns and build the array manually instead of using FETCH_KEY_PAIR.
             $sql_types = "SELECT type_id, type_name, price FROM attendee_types";
             $stmt_types = $pdo->query($sql_types);
             $attendee_types_raw = $stmt_types->fetchAll(PDO::FETCH_ASSOC);
@@ -113,14 +115,12 @@ if (isset($_SESSION['cart']) && !empty($_SESSION['cart'])) {
                 $reg_total = 0;
                 $attendee_summary = [];
 
-                // Calculate cost for main attendees
                 foreach ($package['details']['attendees'] as $attendee) {
                     $type_id = $attendee['type_id'];
                     $reg_total += $attendee_types[$type_id]['price'] ?? 0;
                     $attendee_summary[] = htmlspecialchars($attendee['first_name'] . ' ' . $attendee['surname']);
                 }
 
-                // Calculate cost for sub-events
                 if (!empty($package['details']['sub_events'])) {
                     foreach ($package['details']['sub_events'] as $sub_event_id => $attendee_indices) {
                         foreach ($attendee_indices as $index) {
@@ -144,6 +144,9 @@ if (isset($_SESSION['cart']) && !empty($_SESSION['cart'])) {
     }
 }
 
+// Generate a CSRF token for all forms on this page
+generate_csrf_token();
+
 // --- HEADER ---
 $page_title = 'Your Shopping Cart';
 require_once __DIR__ . '/../templates/header.php';
@@ -154,7 +157,9 @@ require_once __DIR__ . '/../templates/header.php';
 
     <?php if ($error_message): ?>
         <div class="alert alert-danger"><?= htmlspecialchars($error_message) ?></div>
-    <?php elseif (empty($cart_items)): ?>
+    <?php endif; ?>
+    
+    <?php if (empty($cart_items)): ?>
         <div class="alert alert-info">
             <p>Your shopping cart is empty.</p>
             <a href="merchandise.php" class="btn btn-primary">Continue Shopping</a>
@@ -174,53 +179,48 @@ require_once __DIR__ . '/../templates/header.php';
                     </thead>
                     <tbody>
                         <?php foreach ($cart_items as $key => $item): ?>
-                            <?php if ($item['type'] === 'merchandise'): ?>
-                                <!-- MERCHANDISE ITEM ROW -->
-                                <tr>
-                                    <td style="width: 100px;">
+                            <tr>
+                                <td style="width: 100px;">
+                                    <?php if ($item['type'] === 'merchandise'): ?>
                                         <img src="<?= htmlspecialchars($item['image'] ?? 'https://placehold.co/100x100?text=No+Image') ?>" class="img-fluid rounded" alt="<?= htmlspecialchars($item['name']) ?>">
-                                    </td>
-                                    <td>
-                                        <strong><?= htmlspecialchars($item['name']) ?></strong><br>
-                                        <small class="text-muted"><?= htmlspecialchars($item['options']) ?></small>
-                                    </td>
-                                    <td>$<?= htmlspecialchars(number_format($item['price'], 2)) ?></td>
-                                    <td class="text-center">
+                                    <?php elseif ($item['type'] === 'campsite'): ?>
+                                        <img src="https://placehold.co/100x100/EBF5FB/17202A?text=Booking" class="img-fluid rounded" alt="Campsite Booking">
+                                    <?php elseif ($item['type'] === 'registration'): ?>
+                                        <img src="https://placehold.co/100x100/D4EDDA/155724?text=Rego" class="img-fluid rounded" alt="Event Registration">
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <strong><?= htmlspecialchars($item['name']) ?></strong><br>
+                                    <small class="text-muted"><?= $item['options'] ?? '' ?></small>
+                                    <?php if(isset($item['details'])): ?>
+                                        <br><small class="text-muted"><?= $item['details'] ?></small>
+                                    <?php endif; ?>
+                                </td>
+                                <td>$<?= htmlspecialchars(number_format($item['price'] ?? $item['subtotal'], 2)) ?></td>
+                                <td class="text-center">
+                                    <?php if ($item['type'] === 'merchandise'): ?>
                                         <form action="cart_actions.php" method="POST" class="d-flex justify-content-center">
                                             <input type="hidden" name="action" value="update">
                                             <input type="hidden" name="cart_key" value="<?= $key ?>">
+                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                                             <input type="number" name="quantity" class="form-control" value="<?= $item['quantity'] ?>" min="1" style="width: 70px;">
                                             <button type="submit" class="btn btn-sm btn-outline-secondary ms-2">Update</button>
                                         </form>
-                                    </td>
-                                    <td>$<?= htmlspecialchars(number_format($item['subtotal'], 2)) ?></td>
-                                    <td>
-                                        <a href="cart_actions.php?action=remove&key=<?= $key ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to remove this item?')">&times;</a>
-                                    </td>
-                                </tr>
-                            <?php elseif ($item['type'] === 'campsite'): ?>
-                                <!-- CAMPSITE BOOKING ROW -->
-                                <tr>
-                                    <td style="width: 100px;"><img src="https://placehold.co/100x100/EBF5FB/17202A?text=Booking" class="img-fluid rounded" alt="Campsite Booking"></td>
-                                    <td colspan="3">
-                                        <strong><?= htmlspecialchars($item['name']) ?></strong><br>
-                                        <small class="text-muted"><?= $item['options'] ?><br><?= $item['details'] ?></small>
-                                    </td>
-                                    <td>$<?= htmlspecialchars(number_format($item['subtotal'], 2)) ?></td>
-                                    <td><a href="cart_actions.php?action=remove&key=<?= $key ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">&times;</a></td>
-                                </tr>
-                             <?php elseif ($item['type'] === 'registration'): ?>
-                                <!-- EVENT REGISTRATION ROW -->
-                                <tr>
-                                    <td style="width: 100px;"><img src="https://placehold.co/100x100/D4EDDA/155724?text=Rego" class="img-fluid rounded" alt="Event Registration"></td>
-                                    <td colspan="3">
-                                        <strong><?= htmlspecialchars($item['name']) ?></strong><br>
-                                        <small class="text-muted"><?= $item['options'] ?></small>
-                                    </td>
-                                    <td>$<?= htmlspecialchars(number_format($item['subtotal'], 2)) ?></td>
-                                    <td><a href="cart_actions.php?action=remove&key=<?= $key ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">&times;</a></td>
-                                </tr>
-                            <?php endif; ?>
+                                    <?php else: ?>
+                                        1
+                                    <?php endif; ?>
+                                </td>
+                                <td>$<?= htmlspecialchars(number_format($item['subtotal'], 2)) ?></td>
+                                <td>
+                                    <!-- **MODIFIED**: Changed remove link to a secure form -->
+                                    <form action="cart_actions.php" method="POST" onsubmit="return confirm('Are you sure you want to remove this item?');">
+                                        <input type="hidden" name="action" value="remove">
+                                        <input type="hidden" name="key" value="<?= $key ?>">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                                        <button type="submit" class="btn btn-sm btn-danger">&times;</button>
+                                    </form>
+                                </td>
+                            </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>

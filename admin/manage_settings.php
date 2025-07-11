@@ -10,6 +10,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 
 // --- CONFIGURATION AND DATABASE CONNECTION ---
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php';
 
 // --- INITIALIZE VARIABLES ---
 $error_message = '';
@@ -18,6 +19,9 @@ $settings = [];
 
 // --- FORM PROCESSING LOGIC ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Validate the CSRF token to prevent cross-site request forgery attacks.
+    validate_csrf_token();
+
     // Get the junior_max_age from the form and validate it.
     $junior_max_age = filter_input(INPUT_POST, 'junior_max_age', FILTER_VALIDATE_INT);
 
@@ -60,6 +64,9 @@ try {
     $error_message = "Database Error: Could not load settings. " . $e->getMessage();
 }
 
+// Generate a CSRF token for the form.
+generate_csrf_token();
+
 // --- HEADER ---
 $page_title = 'Manage System Settings';
 require_once __DIR__ . '/../templates/header.php';
@@ -75,6 +82,7 @@ require_once __DIR__ . '/../templates/header.php';
     <?php endif; ?>
 
     <form action="manage_settings.php" method="POST">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
         <div class="card">
             <div class="card-header">
                 Registration Settings

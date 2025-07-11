@@ -1,13 +1,8 @@
 <?php
-
-// FORCE ERROR REPORTING FOR DEBUGGING
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+// public_html/login.php
 
 // ALL PHP code for this page must go at the very top.
-// session_start() must be the very first thing called on the page.
 session_start();
-
 
 // If the user is already logged in, redirect them to their profile page
 if (isset($_SESSION['user_id'])) {
@@ -15,13 +10,17 @@ if (isset($_SESSION['user_id'])) {
     exit(); // Stop script execution
 }
 
-// Include the database configuration file
+// Include the database configuration file and security helpers
 require_once __DIR__ . '/../config/db_config.php';
+require_once __DIR__ . '/../lib/functions/security_helpers.php'; // Include CSRF helpers
 
 $error_message = '';
 
 // Check if the form was submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Validate the CSRF token
+    validate_csrf_token();
+
     $username = trim($_POST['username']);
     $password = $_POST['password'];
 
@@ -34,27 +33,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt = $pdo->prepare($sql);
             $stmt->execute(['username' => $username]);
             
-            // fetch() returns the user record, or false if not found
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
             // Verify the user was found AND the password matches the hash
             if ($user && password_verify($password, $user['password_hash'])) {
                 // Password is correct! Start the user session.
-                
-                // Regenerate the session ID for security
                 session_regenerate_id(true);
 
-                // Store user data in the session array
                 $_SESSION['user_id'] = $user['user_id'];
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['role'] = $user['role'];
 
-                // Redirect the user to their profile page
-                header("Location: profile.php");
-                exit(); // Important to stop the script after a redirect
+                // Check for a redirect URL from a previous attempt to access a protected page
+                $redirect_url = $_SESSION['redirect_url'] ?? 'profile.php';
+                unset($_SESSION['redirect_url']); // Clear it after use
+
+                header("Location: " . $redirect_url);
+                exit();
 
             } else {
-                // If login fails (user not found or password incorrect)
                 $error_message = "Invalid username or password.";
             }
         } catch (PDOException $e) {
@@ -62,45 +59,46 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 }
+
+// Generate a CSRF token for the form
+generate_csrf_token();
+
+// --- PAGE SETUP ---
+$page_title = 'ALSM - Login';
+require_once __DIR__ . '/../templates/header.php'; // Use the standard header
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALSM - Login</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/reset.css">
-    <link rel="stylesheet" href="assets/css/style.css">
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-         </nav>
-    <main class="container mt-4">
-        <div class="row">
-            <div class="col-md-6 offset-md-3">
-                <h2>User Login</h2>
 
-                <?php if (!empty($error_message)): ?>
-                    <div class="alert alert-danger"><?php echo $error_message; ?></div>
-                <?php endif; ?>
+<main class="container mt-4">
+    <div class="row">
+        <div class="col-md-6 offset-md-3">
+            <h2 class="mb-4">User Login</h2>
 
-                <form action="login.php" method="POST">
-                    <div class="mb-3">
-                        <label for="username" class="form-label">Username</label>
-                        <input type="text" class="form-control" id="username" name="username" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Login</button>
-                </form>
-            </div>
+            <?php if (!empty($error_message)): ?>
+                <div class="alert alert-danger"><?= htmlspecialchars($error_message) ?></div>
+            <?php endif; ?>
+            <?php if (isset($_SESSION['error_message'])): // Display error messages from other pages ?>
+                <div class="alert alert-danger"><?= htmlspecialchars($_SESSION['error_message']) ?></div>
+                <?php unset($_SESSION['error_message']); ?>
+            <?php endif; ?>
+
+            <form action="login.php" method="POST">
+                <!-- Add the hidden CSRF token field -->
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                <div class="mb-3">
+                    <label for="username" class="form-label">Username</label>
+                    <input type="text" class="form-control" id="username" name="username" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Login</button>
+                <a href="register.php" class="btn btn-link">Don't have an account? Register</a>
+            </form>
         </div>
-    </main>
+    </div>
+</main>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/main.js"></script>
-</body>
-</html>
+<?php 
+require_once __DIR__ . '/../templates/footer.php'; // Use the standard footer
+?>

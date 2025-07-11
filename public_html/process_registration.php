@@ -4,6 +4,7 @@
 // This is a logic-only file. It processes the attendee data from the previous step,
 // saves it to the session, and redirects to the sub-event selection page.
 
+require_once '../lib/functions/security_helpers.php'; // Include CSRF helpers
 session_start();
 
 // Security check: ensure user is logged in and the form was submitted via POST.
@@ -15,6 +16,9 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     header("Location: events.php");
     exit();
 }
+
+// Validate the CSRF token. This will stop the script if the token is invalid.
+validate_csrf_token();
 
 // --- DATA VALIDATION AND PROCESSING ---
 
@@ -35,7 +39,7 @@ if (empty($attendees_data)) {
     exit();
 }
 
-// **THE FIX**: Use array_values() to re-index the array from 0.
+// Use array_values() to re-index the array from 0.
 // This prevents issues when attendees are removed from the middle of the list.
 $clean_attendees_data = array_values($attendees_data);
 
@@ -50,5 +54,3 @@ $_SESSION['event_registration_in_progress'] = [
 // Redirect the user to the next step: selecting sub-events.
 header("Location: select_sub_events.php");
 exit();
-
-?>

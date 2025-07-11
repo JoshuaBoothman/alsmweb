@@ -2,7 +2,6 @@
 
 document.addEventListener('DOMContentLoaded', function () {
     // 1. Initialize Stripe.js with your publishable key.
-    // **ACTION REQUIRED**: Replace the placeholder text below with your real Publishable Key.
     const stripe = Stripe('pk_test_51ReOfr03IGtarUhKQHSztXVhZQqDzvT6NXzQVo1YvJBzh7dphj6fQi1pO7G5l5HAKSb9TUx2uVNoSMbVTq9WwBF400kypQNQrw');
 
     const elements = stripe.elements();
@@ -51,6 +50,9 @@ document.addEventListener('DOMContentLoaded', function () {
         event.preventDefault();
         setLoading(true);
 
+        // Get the CSRF token from the form's data attribute
+        const csrfToken = form.dataset.csrfToken;
+
         // Save shipping address to session
         const formData = new FormData(form);
         const addressData = {
@@ -62,17 +64,28 @@ document.addEventListener('DOMContentLoaded', function () {
             const saveAddrResponse = await fetch('api/save_address_to_session.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(addressData),
+                // **MODIFIED**: Send the CSRF token along with the address data
+                body: JSON.stringify({ ...addressData, csrf_token: csrfToken }),
             });
-            if (!saveAddrResponse.ok) throw new Error('Could not save shipping address.');
+            if (!saveAddrResponse.ok) {
+                 const errorResult = await saveAddrResponse.json();
+                 throw new Error(errorResult.error || 'Could not save shipping address.');
+            }
         } catch (e) {
             cardErrors.textContent = e.message;
             setLoading(false);
             return;
         }
         
-        // Fetch client secret from our server
-        const paymentIntentResponse = await fetch('api/create_payment_intent.php', { method: 'POST' });
+        // Fetch client secret from our server, now sending the CSRF token
+        const paymentIntentResponse = await fetch('api/create_payment_intent.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ csrf_token: csrfToken }),
+        });
+        
         const { clientSecret, error: backendError } = await paymentIntentResponse.json();
         if (backendError) {
             cardErrors.textContent = backendError;

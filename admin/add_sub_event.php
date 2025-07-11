@@ -8,6 +8,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 }
 
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php';
 
 // --- INITIALIZE VARIABLES ---
 $error_message = '';
@@ -27,7 +28,7 @@ try {
     $stmt->execute([':id' => $event_id]);
     $event = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($event) {
-        $event_name = $event['name'];
+        $event_name = $event['event_name'];
     } else {
         throw new Exception("The specified parent event could not be found.");
     }
@@ -37,6 +38,9 @@ try {
 
 // --- FORM PROCESSING LOGIC ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Validate the CSRF token to prevent cross-site request forgery attacks.
+    validate_csrf_token();
+
     $event_id_post = filter_input(INPUT_POST, 'event_id', FILTER_VALIDATE_INT);
     $sub_event_name = trim($_POST['sub_event_name']);
     $description = trim($_POST['description']);
@@ -77,6 +81,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 
+// Generate a CSRF token to be included in the form.
+generate_csrf_token();
+
 // --- HEADER ---
 $page_title = 'Add New Sub-Event';
 require_once __DIR__ . '/../templates/header.php';
@@ -89,6 +96,8 @@ require_once __DIR__ . '/../templates/header.php';
     <?php endif; ?>
 
     <form action="add_sub_event.php?event_id=<?= $event_id ?>" method="POST">
+        <!-- CSRF Token for security -->
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
         <input type="hidden" name="event_id" value="<?= $event_id ?>">
 
         <div class="mb-3">

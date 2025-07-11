@@ -8,6 +8,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 }
 
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php';
 
 // --- INITIALIZE VARIABLES ---
 $error_message = '';
@@ -30,6 +31,9 @@ function hasRegistrations($pdo, $id) {
 
 // --- FORM PROCESSING (DELETION) ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Validate the CSRF token to prevent cross-site request forgery attacks.
+    validate_csrf_token();
+
     $sub_event_id_post = filter_input(INPUT_POST, 'sub_event_id', FILTER_VALIDATE_INT);
 
     if ($sub_event_id_post === $sub_event_id) {
@@ -48,11 +52,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         } catch (PDOException $e) {
             $error_message = "Database Error: Could not delete the sub-event. " . $e->getMessage();
         }
+    } else {
+        $error_message = "ID mismatch. Deletion failed.";
     }
-}
 
-// --- DATA FETCHING for confirmation page ---
-if (empty($error_message)) {
+} else { // --- DATA FETCHING for confirmation page (GET request) ---
     try {
         if (hasRegistrations($pdo, $sub_event_id)) {
             $error_message = "This sub-event cannot be deleted because one or more attendees are registered for it.";
@@ -70,6 +74,9 @@ if (empty($error_message)) {
         $error_message = "Database Error: " . $e->getMessage();
     }
 }
+
+// Generate a CSRF token for the confirmation form.
+generate_csrf_token();
 
 // --- HEADER ---
 $page_title = 'Delete Sub-Event';
@@ -90,6 +97,7 @@ require_once __DIR__ . '/../templates/header.php';
         </div>
 
         <form action="delete_sub_event.php?id=<?= $sub_event_id ?>&event_id=<?= $event_id ?>" method="POST">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
             <input type="hidden" name="sub_event_id" value="<?= htmlspecialchars($sub_event_id) ?>">
             <button type="submit" class="btn btn-danger">Confirm Delete</button>
             <a href="manage_sub_events.php?event_id=<?= $event_id ?>" class="btn btn-secondary">Cancel</a>

@@ -8,12 +8,16 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 
 // --- CONFIGURATION AND DATABASE CONNECTION ---
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php';
 
 // --- FORM PROCESSING LOGIC ---
 $error_message = '';
 $success_message = '';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // 1. Validate the CSRF token on submission
+    validate_csrf_token();
+
     $attribute_name = trim($_POST['attribute_name']);
     $errors = [];
 
@@ -54,6 +58,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $error_message = implode('<br>', $errors);
     }
 }
+
+// 2. Generate a CSRF token for the form to be displayed
+generate_csrf_token();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -72,6 +79,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <?php endif; ?>
 
         <form action="add_attribute.php" method="POST">
+            <!-- 3. Add the hidden CSRF token field to the form -->
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
             <div class="mb-3">
                 <label for="attribute_name" class="form-label">Attribute Name</label>
                 <input type="text" class="form-control" id="attribute_name" name="attribute_name" placeholder="e.g., Color, Size, Material" value="<?= isset($_POST['attribute_name']) ? htmlspecialchars($_POST['attribute_name']) : '' ?>" required>

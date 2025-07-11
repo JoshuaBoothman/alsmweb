@@ -10,6 +10,7 @@ if (!isset($_SESSION['event_registration_in_progress'])) {
 }
 
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php'; // 1. Include CSRF helpers
 
 // --- INITIALIZE VARIABLES ---
 $registration_data = $_SESSION['event_registration_in_progress'];
@@ -39,6 +40,9 @@ try {
     $error_message = "Error: " . $e->getMessage();
 }
 
+// 2. Generate a token for the form
+generate_csrf_token();
+
 // --- HEADER ---
 $page_title = 'Select Sub-Events';
 require_once __DIR__ . '/../templates/header.php';
@@ -54,6 +58,8 @@ require_once __DIR__ . '/../templates/header.php';
     <?php else: ?>
         <form id="sub-event-form" action="cart_actions.php" method="POST">
             <input type="hidden" name="action" value="add_registration_to_cart">
+            <!-- 3. Add the hidden CSRF token field -->
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
             
             <?php if (empty($sub_events)): ?>
                 <div class="alert alert-info">There are no sub-events available for this event.</div>

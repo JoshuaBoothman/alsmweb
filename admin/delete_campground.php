@@ -10,6 +10,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 
 // --- CONFIGURATION AND DATABASE CONNECTION ---
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php';
 
 // --- INITIALIZE VARIABLES ---
 $error_message = '';
@@ -26,6 +27,9 @@ function hasDependencies($pdo, $id) {
 
 // --- FORM PROCESSING (DELETION on POST request) ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Validate the CSRF token to prevent cross-site request forgery attacks.
+    validate_csrf_token();
+
     $campground_id_post = filter_input(INPUT_POST, 'campground_id', FILTER_VALIDATE_INT);
 
     if ($campground_id_post) {
@@ -73,6 +77,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $error_message = "No Campground ID specified.";
 }
 
+// Generate a CSRF token for the confirmation form.
+generate_csrf_token();
+
 // --- HEADER ---
 $page_title = 'Delete Campground';
 require_once __DIR__ . '/../templates/header.php';
@@ -93,6 +100,7 @@ require_once __DIR__ . '/../templates/header.php';
         </div>
 
         <form action="delete_campground.php?id=<?= htmlspecialchars($campground_id) ?>" method="POST">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
             <input type="hidden" name="campground_id" value="<?= htmlspecialchars($campground_id) ?>">
             <button type="submit" class="btn btn-danger">Confirm Delete</button>
             <a href="manage_campgrounds.php" class="btn btn-secondary">Cancel</a>

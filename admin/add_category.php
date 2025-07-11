@@ -11,6 +11,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 // --- CONFIGURATION AND DATABASE CONNECTION ---
 // We need to connect to the database to insert the new category data.
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php';
 
 // --- FORM PROCESSING LOGIC ---
 // These variables will hold any messages to display to the admin.
@@ -19,6 +20,9 @@ $success_message = '';
 
 // Check if the request method is POST, which means the "Add Category" form has been submitted.
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Validate the CSRF token to prevent cross-site request forgery attacks.
+    validate_csrf_token();
+
     // 1. Retrieve and sanitize the form data
     $category_name = trim($_POST['category_name']);
     $description = trim($_POST['description']);
@@ -70,6 +74,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $error_message = implode('<br>', $errors);
     }
 }
+
+// Generate a CSRF token to be included in the form.
+generate_csrf_token();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -91,6 +98,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <?php endif; ?>
 
         <form action="add_category.php" method="POST">
+            <!-- CSRF Token for security -->
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
             <div class="mb-3">
                 <label for="category_name" class="form-label">Category Name</label>
                 <input type="text" class="form-control" id="category_name" name="category_name" value="<?= isset($_POST['category_name']) ? htmlspecialchars($_POST['category_name']) : '' ?>" required>

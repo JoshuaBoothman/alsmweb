@@ -8,6 +8,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 
 // --- CONFIGURATION AND DATABASE CONNECTION ---
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php';
 
 // --- INITIALIZE VARIABLES ---
 $error_message = '';
@@ -17,6 +18,9 @@ $category_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT); // Get catego
 // --- FORM PROCESSING LOGIC (HANDLE POST REQUEST) ---
 // This block runs ONLY when the admin submits the edit form.
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Validate the CSRF token to prevent cross-site request forgery attacks.
+    validate_csrf_token();
+
     // We get the category_id from a hidden field in the form.
     $category_id = filter_input(INPUT_POST, 'category_id', FILTER_VALIDATE_INT);
 
@@ -98,6 +102,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // This runs if no ID was provided in the URL at all.
     $error_message = "No Category ID provided.";
 }
+
+// Generate a CSRF token for the form to be displayed.
+generate_csrf_token();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -117,6 +124,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         <?php if ($category): // Only show the form if we successfully found a category to edit ?>
         <form action="edit_category.php?id=<?= htmlspecialchars($category_id) ?>" method="POST">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
             <input type="hidden" name="category_id" value="<?= htmlspecialchars($category['category_id']) ?>">
             
             <div class="mb-3">

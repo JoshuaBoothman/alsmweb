@@ -10,6 +10,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 
 // --- CONFIGURATION AND DATABASE CONNECTION ---
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php';
 
 // --- INITIALIZE VARIABLES ---
 $error_message = '';
@@ -24,6 +25,9 @@ if (!$type_id) {
 
 // --- FORM PROCESSING LOGIC ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Validate the CSRF token to prevent cross-site request forgery attacks.
+    validate_csrf_token();
+
     $type_id_post = filter_input(INPUT_POST, 'type_id', FILTER_VALIDATE_INT);
     $type_name = trim($_POST['type_name']);
     $price = filter_input(INPUT_POST, 'price', FILTER_VALIDATE_FLOAT);
@@ -103,6 +107,9 @@ if (!$attendee_type) {
     }
 }
 
+// Generate a CSRF token for the form to be displayed.
+generate_csrf_token();
+
 // --- HEADER ---
 $page_title = 'Edit Attendee Type';
 require_once __DIR__ . '/../templates/header.php';
@@ -116,6 +123,7 @@ require_once __DIR__ . '/../templates/header.php';
 
     <?php if ($attendee_type): ?>
     <form action="edit_attendee_type.php?id=<?= $type_id ?>" method="POST">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
         <input type="hidden" name="type_id" value="<?= htmlspecialchars($attendee_type['type_id']) ?>">
         
         <div class="mb-3">

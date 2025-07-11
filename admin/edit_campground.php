@@ -8,6 +8,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 }
 
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php';
 
 // --- INITIALIZE VARIABLES ---
 $error_message = '';
@@ -22,6 +23,9 @@ if (!$campground_id) {
 
 // --- FORM PROCESSING ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Validate the CSRF token to prevent cross-site request forgery attacks.
+    validate_csrf_token();
+
     $campground_id = filter_input(INPUT_POST, 'campground_id', FILTER_VALIDATE_INT);
     $name = trim($_POST['name']);
     $description = trim($_POST['description']);
@@ -111,6 +115,9 @@ try {
     $error_message = "Database Error: " . $e->getMessage();
 }
 
+// Generate a CSRF token for the form to be displayed.
+generate_csrf_token();
+
 $page_title = 'Edit Campground';
 require_once __DIR__ . '/../templates/header.php';
 ?>
@@ -123,6 +130,7 @@ require_once __DIR__ . '/../templates/header.php';
 
     <?php if ($campground): ?>
     <form action="edit_campground.php?id=<?= $campground_id ?>" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
         <input type="hidden" name="campground_id" value="<?= htmlspecialchars($campground['campground_id']) ?>">
         <input type="hidden" name="current_map_path" value="<?= htmlspecialchars($campground['map_image_path']) ?>">
         

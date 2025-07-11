@@ -10,6 +10,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 
 // --- CONFIGURATION AND DATABASE CONNECTION ---
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php';
 
 // --- INITIALIZE VARIABLES ---
 $error_message = '';
@@ -40,6 +41,9 @@ try {
 
 // --- FORM PROCESSING LOGIC ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Validate the CSRF token
+    validate_csrf_token();
+
     // Re-validate the campground_id from the hidden form field for security.
     $campground_id_post = filter_input(INPUT_POST, 'campground_id', FILTER_VALIDATE_INT);
     $name = trim($_POST['name']);
@@ -85,6 +89,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 
+// Generate a CSRF token for the form to be displayed
+generate_csrf_token();
+
 // --- HEADER ---
 $page_title = 'Add New Campsite';
 require_once __DIR__ . '/../templates/header.php';
@@ -98,6 +105,7 @@ require_once __DIR__ . '/../templates/header.php';
 
     <form action="add_campsite.php?campground_id=<?= $campground_id ?>" method="POST">
         <!-- Hidden field to pass the campground_id during POST -->
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
         <input type="hidden" name="campground_id" value="<?= $campground_id ?>">
 
         <div class="mb-3">

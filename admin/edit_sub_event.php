@@ -8,6 +8,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 }
 
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php';
 
 // --- INITIALIZE VARIABLES ---
 $error_message = '';
@@ -24,6 +25,9 @@ if (!$sub_event_id || !$event_id) {
 
 // --- FORM PROCESSING LOGIC ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Validate the CSRF token to prevent cross-site request forgery attacks.
+    validate_csrf_token();
+
     $sub_event_id_post = filter_input(INPUT_POST, 'sub_event_id', FILTER_VALIDATE_INT);
     $sub_event_name = trim($_POST['sub_event_name']);
     $description = trim($_POST['description']);
@@ -92,6 +96,9 @@ if (!$sub_event) {
     }
 }
 
+// Generate a CSRF token for the form to be displayed.
+generate_csrf_token();
+
 // --- HEADER ---
 $page_title = 'Edit Sub-Event';
 require_once __DIR__ . '/../templates/header.php';
@@ -105,6 +112,7 @@ require_once __DIR__ . '/../templates/header.php';
 
     <?php if ($sub_event): ?>
     <form action="edit_sub_event.php?id=<?= $sub_event_id ?>&event_id=<?= $event_id ?>" method="POST">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
         <input type="hidden" name="sub_event_id" value="<?= $sub_event_id ?>">
         
         <div class="mb-3">

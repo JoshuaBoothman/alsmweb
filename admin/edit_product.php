@@ -8,6 +8,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 }
 
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php';
 
 // --- INITIALIZE VARIABLES ---
 $error_message = '';
@@ -22,6 +23,9 @@ if (!$product_id) {
 
 // --- FORM SUBMISSION LOGIC ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Validate the CSRF token to prevent cross-site request forgery attacks.
+    validate_csrf_token();
+
     // 1. Retrieve and validate form data
     $product_id = filter_input(INPUT_POST, 'product_id', FILTER_VALIDATE_INT);
     $product_name = trim($_POST['product_name']);
@@ -131,6 +135,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 
+// Generate a CSRF token for the form to be displayed.
+generate_csrf_token();
+
 // --- HEADER ---
 $page_title = 'Edit Product';
 require_once __DIR__ . '/../templates/header.php';
@@ -145,6 +152,7 @@ require_once __DIR__ . '/../templates/header.php';
 
     <?php if ($product): ?>
     <form action="edit_product.php?id=<?= htmlspecialchars($product_id) ?>" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
         <input type="hidden" name="product_id" value="<?= htmlspecialchars($product['product_id']) ?>">
         <input type="hidden" name="current_image_path" value="<?= htmlspecialchars($product['image_path']) ?>">
 

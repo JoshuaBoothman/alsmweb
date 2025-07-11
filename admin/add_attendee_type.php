@@ -8,14 +8,17 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
     exit();
 }
 
-// --- CONFIGURATION AND DATABASE CONNECTION ---
+// --- CONFIGURATION AND HELPERS ---
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php'; // 1. Include CSRF helpers
 
 // --- INITIALIZE VARIABLES ---
 $error_message = '';
 
 // --- FORM PROCESSING LOGIC ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    validate_csrf_token(); // 2. Validate CSRF token on submission
+
     $type_name = trim($_POST['type_name']);
     $price = filter_input(INPUT_POST, 'price', FILTER_VALIDATE_FLOAT);
     $is_active = isset($_POST['is_active']) ? 1 : 0;
@@ -73,6 +76,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 
+// 3. Generate a CSRF token for the form that will be displayed
+generate_csrf_token();
+
 // --- HEADER ---
 $page_title = 'Add Attendee Type';
 require_once __DIR__ . '/../templates/header.php';
@@ -85,6 +91,9 @@ require_once __DIR__ . '/../templates/header.php';
     <?php endif; ?>
 
     <form action="add_attendee_type.php" method="POST">
+        <!-- 4. Add the hidden CSRF token field to the form -->
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+
         <div class="mb-3">
             <label for="type_name" class="form-label">Type Name</label>
             <input type="text" class="form-control" id="type_name" name="type_name" placeholder="e.g., Pilot, Guest, Junior" required>

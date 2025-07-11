@@ -10,6 +10,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 
 // --- CONFIGURATION AND DATABASE CONNECTION ---
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php';
 
 // --- INITIALIZE VARIABLES ---
 $error_message = '';
@@ -25,6 +26,9 @@ try {
 
 // --- FORM PROCESSING LOGIC ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // 1. Validate the CSRF token on submission
+    validate_csrf_token();
+
     $name = trim($_POST['name']);
     $description = trim($_POST['description']);
     $event_id = filter_input(INPUT_POST, 'event_id', FILTER_VALIDATE_INT);
@@ -57,6 +61,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $error_message = implode('<br>', $errors);
     }
 }
+
+// 2. Generate a CSRF token for the form to be displayed
+generate_csrf_token();
+
 // --- HEADER ---
 $page_title = 'Add New Campground';
 require_once __DIR__ . '/../templates/header.php';
@@ -69,6 +77,8 @@ require_once __DIR__ . '/../templates/header.php';
     <?php endif; ?>
 
     <form action="add_campground.php" method="POST">
+        <!-- 3. Add the hidden CSRF token field to the form -->
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
         <div class="mb-3">
             <label for="name" class="form-label">Campground Name</label>
             <input type="text" class="form-control" id="name" name="name" required>
@@ -103,6 +113,3 @@ require_once __DIR__ . '/../templates/header.php';
     </form>
 </div>
 <?php require_once __DIR__ . '/../templates/footer.php'; ?>
-
----
----

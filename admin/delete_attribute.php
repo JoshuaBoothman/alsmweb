@@ -8,6 +8,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 
 // --- CONFIGURATION AND DATABASE CONNECTION ---
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php';
 
 // --- INITIALIZE VARIABLES ---
 $error_message = '';
@@ -28,6 +29,9 @@ function isAttributeInUse($pdo, $attribute_id) {
 
 // --- FORM PROCESSING LOGIC (POST REQUEST) ---
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Validate the CSRF token to prevent cross-site request forgery attacks.
+    validate_csrf_token();
+
     $attribute_id = filter_input(INPUT_POST, 'attribute_id', FILTER_VALIDATE_INT);
 
     if ($attribute_id) {
@@ -75,6 +79,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 } else {
     $error_message = "No Attribute ID provided.";
 }
+
+// Generate a CSRF token for the confirmation form.
+generate_csrf_token();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -100,6 +107,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
 
             <form action="delete_attribute.php" method="POST">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                 <input type="hidden" name="attribute_id" value="<?= htmlspecialchars($attribute_id) ?>">
                 <button type="submit" class="btn btn-danger">Confirm Delete</button>
                 <a href="manage_attributes.php" class="btn btn-secondary">Cancel</a>

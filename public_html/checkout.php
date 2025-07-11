@@ -3,6 +3,7 @@
 
 require_once '../config/db_config.php';
 require_once __DIR__ . '/../vendor/autoload.php';
+require_once '../lib/functions/security_helpers.php'; // 1. Include CSRF helpers
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -100,6 +101,9 @@ try {
     $error_message = "Database error: " . $e->getMessage();
 }
 
+// 2. Generate a CSRF token to be used by the form
+generate_csrf_token();
+
 // --- HEADER (custom, to include Stripe.js) ---
 $page_title = 'Checkout';
 ?>
@@ -125,7 +129,8 @@ $page_title = 'Checkout';
         <?php else: ?>
             <div class="row g-5">
                 <div class="col-md-7 col-lg-8">
-                    <form id="payment-form">
+                    <!-- 3. Add the token to the form as a data attribute for JavaScript to access -->
+                    <form id="payment-form" data-csrf-token="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                         <h4 class="mb-3">Shipping Address</h4>
                         <div class="row g-3">
                             <div class="col-sm-6">

@@ -9,6 +9,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php'; // 1. Include CSRF helpers
 
 // --- INITIALIZE VARIABLES ---
 $event = null;
@@ -43,6 +44,9 @@ try {
 // Get existing data if it's in the session to pass to JavaScript
 $existing_attendees = $_SESSION['event_registration_in_progress']['attendees'] ?? [];
 
+// 2. Generate a token for the form
+generate_csrf_token();
+
 // --- HEADER ---
 $page_title = 'Register for ' . htmlspecialchars($event['event_name'] ?? 'Event');
 require_once __DIR__ . '/../templates/header.php';
@@ -58,6 +62,8 @@ require_once __DIR__ . '/../templates/header.php';
     <?php else: ?>
         <form id="registration-form" action="process_registration.php" method="POST">
             <input type="hidden" name="event_id" value="<?= $event_id ?>">
+            <!-- 3. Add the hidden CSRF token field -->
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
             
             <div id="attendees-container">
                 <!-- Attendee blocks will be dynamically inserted here by JavaScript -->

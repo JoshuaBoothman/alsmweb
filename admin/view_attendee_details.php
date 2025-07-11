@@ -8,6 +8,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 }
 
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php';
 
 // --- INITIALIZE VARIABLES ---
 $attendee = null;
@@ -22,6 +23,9 @@ if (!$attendee_id) {
 
 // --- HANDLE CERTIFICATE SIGHTED TOGGLE ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_cert_sighted'])) {
+    // Validate the CSRF token to prevent cross-site request forgery attacks.
+    validate_csrf_token();
+
     $plane_id_to_toggle = filter_input(INPUT_POST, 'plane_id', FILTER_VALIDATE_INT);
     if ($plane_id_to_toggle) {
         try {
@@ -68,6 +72,9 @@ try {
 } catch (Exception $e) {
     $error_message = "Error: " . $e->getMessage();
 }
+
+// Generate a CSRF token for the status update forms.
+generate_csrf_token();
 
 
 // --- HEADER ---
@@ -158,6 +165,7 @@ require_once __DIR__ . '/../templates/header.php';
                                             <p class="mb-1"><small><strong>Cert Number:</strong> <?= htmlspecialchars($plane['cert_number'] ?? 'N/A') ?></small></p>
                                             <p class="mb-2"><small><strong>Cert Expiry:</strong> <?= $plane['cert_expiry'] ? date('d M Y', strtotime($plane['cert_expiry'])) : 'N/A' ?></small></p>
                                             <form action="view_attendee_details.php?id=<?= $attendee_id ?>" method="POST" class="d-flex justify-content-end">
+                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                                                 <input type="hidden" name="plane_id" value="<?= $plane['plane_id'] ?>">
                                                 <button type="submit" name="toggle_cert_sighted" class="btn btn-sm <?= $plane['cert_sighted'] ? 'btn-success' : 'btn-outline-secondary' ?>">
                                                     <?= $plane['cert_sighted'] ? '✓ Certificate Sighted' : 'Mark as Sighted' ?>
