@@ -80,6 +80,7 @@ require_once __DIR__ . '/../templates/header.php';
     <!-- Date Selection Form -->
     <div class="card bg-light p-4 mb-5">
         <form action="campsite_booking.php" method="GET" class="row g-3 align-items-end">
+            
             <div class="col-md-5">
                 <label for="check_in" class="form-label">Check-in Date</label>
                 <input type="date" class="form-control" id="check_in" name="check_in" value="<?= htmlspecialchars($check_in_date) ?>" required>
@@ -130,6 +131,7 @@ require_once __DIR__ . '/../templates/header.php';
                                         <div class="mt-auto">
                                             <?php if ($is_available): ?>
                                                 <form action="cart_actions.php" method="POST">
+                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                                                     <input type="hidden" name="action" value="add_booking">
                                                     <input type="hidden" name="campsite_id" value="<?= $site['campsite_id'] ?>">
                                                     <input type="hidden" name="check_in" value="<?= htmlspecialchars($check_in_date) ?>">

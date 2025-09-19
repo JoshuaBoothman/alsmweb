@@ -29,8 +29,7 @@ $last_event_registration_id = null;
 $attendee_id_map = [];
 
 // --- DATABASE TRANSACTION ---
-$pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
-$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
 
 $pdo->beginTransaction();
 
@@ -72,20 +71,23 @@ try {
     $grand_total = $merch_total + $booking_total + $rego_total;
 
     // --- PART 1: CREATE PAYMENT RECORD FIRST ---
-    $stripe_transaction_id = $_SESSION['stripe_payment_intent_id'] ?? 'pi_placeholder_' . uniqid();
-    $sql_payment = "INSERT INTO payments (user_id, gateway_name, gateway_transaction_id, payment_status, amount, currency) VALUES (?, 'Stripe', ?, 'successful', ?, 'aud')";
-    $stmt_payment = $pdo->prepare($sql_payment);
-    $stmt_payment->execute([$user_id, $stripe_transaction_id, $grand_total]);
-    $payment_id = $pdo->lastInsertId();
+    // $stripe_transaction_id = $_SESSION['stripe_payment_intent_id'] ?? 'pi_placeholder_' . uniqid();
+    // $sql_payment = "INSERT INTO payments (user_id, gateway_name, gateway_transaction_id, payment_status, amount, currency) VALUES (?, 'Stripe', ?, 'successful', ?, 'aud')";
+    // $stmt_payment = $pdo->prepare($sql_payment);
+    // $stmt_payment->execute([$user_id, $stripe_transaction_id, $grand_total]);
+    // $payment_id = $pdo->lastInsertId();
 
     // --- PART 2: PROCESS AND LINK ITEMS ---
 
     // Process Merchandise Orders
     $merch_items = array_filter($cart, fn($item) => $item['type'] === 'merchandise');
     if (!empty($merch_items)) {
-        $sql_order = "INSERT INTO orders (user_id, total_amount, shipping_address, order_status, payment_id) VALUES (?, ?, ?, 'paid', ?)";
+        // $sql_order = "INSERT INTO orders (user_id, total_amount, shipping_address, order_status, payment_id) VALUES (?, ?, ?, 'paid', ?)";
+        // $stmt_order = $pdo->prepare($sql_order);
+        // $stmt_order->execute([$user_id, $merch_total, $shipping_address, $payment_id]);
+        $sql_order = "INSERT INTO orders (user_id, total_amount, shipping_address, order_status) VALUES (?, ?, ?, 'pending_payment')";
         $stmt_order = $pdo->prepare($sql_order);
-        $stmt_order->execute([$user_id, $merch_total, $shipping_address, $payment_id]);
+        $stmt_order->execute([$user_id, $merch_total, $shipping_address]);
         $last_merch_order_id = $pdo->lastInsertId();
         
         $sql_order_item = "INSERT INTO orderitems (order_id, product_id, variant_id, quantity, price_at_purchase) VALUES (?, ?, ?, ?, ?)";
@@ -100,7 +102,7 @@ try {
             $stmt_order_item->execute([$last_merch_order_id, $product_id, $variant_id, $item['quantity'], $price]);
             $stmt_update_stock->execute([$item['quantity'], $variant_id]);
         }
-        $pdo->prepare("UPDATE payments SET order_id = ? WHERE payment_id = ?")->execute([$last_merch_order_id, $payment_id]);
+        // $pdo->prepare("UPDATE payments SET order_id = ? WHERE payment_id = ?")->execute([$last_merch_order_id, $payment_id]);
     }
 
     // Process Campsite Bookings
@@ -111,22 +113,27 @@ try {
         
         $in_clause_bookings = implode(',', array_fill(0, count($confirmed_booking_ids), '?'));
         // **THE FIX**: Removed the attempt to update a non-existent payment_id column.
-        $sql_update_booking = "UPDATE bookings SET status = 'Confirmed' WHERE booking_id IN ($in_clause_bookings) AND user_id = ?";
+        // $sql_update_booking = "UPDATE bookings SET status = 'Confirmed' WHERE booking_id IN ($in_clause_bookings) AND user_id = ?";
+        $sql_update_booking = "UPDATE bookings SET status = 'Pending' WHERE booking_id IN ($in_clause_bookings) AND user_id = ?";
         $stmt_update_booking = $pdo->prepare($sql_update_booking);
         $params = array_merge($confirmed_booking_ids, [$user_id]);
         $stmt_update_booking->execute($params);
         
         // This is the correct way to link them.
-        $pdo->prepare("UPDATE payments SET booking_id = ? WHERE payment_id = ?")->execute([$primary_booking_id, $payment_id]);
+        // $pdo->prepare("UPDATE payments SET booking_id = ? WHERE payment_id = ?")->execute([$primary_booking_id, $payment_id]);
     }
     
     // Process Event Registrations
     $registration_package = current(array_filter($cart, fn($item) => $item['type'] === 'registration'));
     if ($registration_package) {
         $details = $registration_package['details'];
-        $sql_rego = "INSERT INTO eventregistrations (user_id, event_id, total_cost, payment_status, payment_id) VALUES (?, ?, ?, 'Paid', ?)";
+        // $sql_rego = "INSERT INTO eventregistrations (user_id, event_id, total_cost, payment_status, payment_id) VALUES (?, ?, ?, 'Paid', ?)";
+        // $sql_rego = "INSERT INTO eventregistrations (user_id, event_id, total_cost, payment_status) VALUES (?, ?, ?, 'pending')";
+        // $stmt_rego = $pdo->prepare($sql_rego);
+        // $stmt_rego->execute([$user_id, $details['event_id'], $rego_total, $payment_id]);
+        $sql_rego = "INSERT INTO eventregistrations (user_id, event_id, total_cost, payment_status) VALUES (?, ?, ?, 'pending')";
         $stmt_rego = $pdo->prepare($sql_rego);
-        $stmt_rego->execute([$user_id, $details['event_id'], $rego_total, $payment_id]);
+        $stmt_rego->execute([$user_id, $details['event_id'], $rego_total]);
         $last_event_registration_id = $pdo->lastInsertId();
         
         foreach ($details['attendees'] as $index => $attendee_data) {
@@ -161,8 +168,8 @@ try {
     $_SESSION['last_booking_ids'] = $confirmed_booking_ids;
     $_SESSION['last_order_id'] = $last_merch_order_id;
     
-    unset($_SESSION['cart'], $_SESSION['shipping_address'], $_SESSION['stripe_payment_intent_id']);
-
+    // unset($_SESSION['cart'], $_SESSION['shipping_address'], $_SESSION['stripe_payment_intent_id']);
+    unset($_SESSION['cart'], $_SESSION['shipping_address']);
     header('Location: order_confirmation.php');
     exit();
 

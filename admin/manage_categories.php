@@ -25,14 +25,11 @@ try {
     $error_message = "Database Error: Could not fetch categories. " . $e->getMessage();
 }
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Categories - Admin</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
+<?php
+// --- HEADER ---
+$page_title = 'Manage Categories';
+require_once __DIR__ . '/../templates/header.php';
+?>
 <body>
     <div class="container mt-5">
         <h1 class="mb-4">Category Management</h1>
@@ -80,6 +77,4 @@ try {
         </table>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<?php require_once __DIR__ . '/../templates/footer.php'; ?>

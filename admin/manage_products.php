@@ -46,6 +46,8 @@ require_once __DIR__ . '/../templates/header.php';
     ?>
 
     <div class="d-flex justify-content-end mb-3">
+        <a href="manage_attributes.php" class="btn btn-secondary me-2">Manage Attributes</a>
+        <a href="manage_categories.php" class="btn btn-info me-2">Manage Categories</a>
         <a href="add_product.php" class="btn btn-success">Add New Product</a>
     </div>
 

@@ -86,17 +86,30 @@ require_once __DIR__ . '/../templates/header.php';
 ?>
 
 <main class="container mt-4">
+    
     <div class="py-5 text-center">
         <?php if ($error_message): ?>
             <h1 class="text-danger">Error</h1>
             <p class="lead"><?= htmlspecialchars($error_message) ?></p>
         <?php else: ?>
-            <h1 class="text-success">Thank You!</h1>
-            <h2>Your Purchase is Confirmed</h2>
-            <p class="lead">Your purchase summary is detailed below. A confirmation email is on its way to you.</p>
+            <h1 class="text-primary">Thank You! Your Order has been Received.</h1>
+            <p class="lead">Your order is now pending payment. Please use the details below to complete your purchase via Direct Deposit.</p>
+            
+            <div class="card mt-4 bg-light text-start w-75 mx-auto">
+                <div class="card-body">
+                    <h5 class="card-title text-center">Payment Instructions</h5>
+                    <p>Please make a payment to the following bank account. <strong>It is crucial that you use your Order ID as the payment reference</strong> so we can identify your payment.</p>
+                    <ul class="list-unstyled">
+                        <li><strong>Bank:</strong> Your Bank Name</li>
+                        <li><strong>Account Name:</strong> Australian Large Scale Models</li>
+                        <li><strong>BSB:</strong> 123-456</li>
+                        <li><strong>Account Number:</strong> 12345678</li>
+                    </ul>
+                    <p class="mb-0">Your order will be processed and confirmed once payment has been received. You will receive an email confirmation at that time.</p>
+                </div>
+            </div>
         <?php endif; ?>
     </div>
-    
     <div class="row justify-content-center">
         <div class="col-md-8">
             <!-- Event Registration Summary -->
@@ -155,8 +168,8 @@ require_once __DIR__ . '/../templates/header.php';
             <?php if ($grand_total > 0): ?>
                 <hr>
                 <div class="d-flex justify-content-between fs-4">
-                    <span class="fw-bold">Grand Total Paid</span>
-                    <strong class="fw-bold text-success">$<?= htmlspecialchars(number_format($grand_total, 2)) ?></strong>
+                    <span class="fw-bold">Total Amount Due</span>
+                    <strong class="fw-bold text-primary">$<?= htmlspecialchars(number_format($grand_total, 2)) ?></strong>
                 </div>
             <?php endif; ?>
 

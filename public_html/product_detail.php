@@ -1,7 +1,11 @@
 <?php
 // --- CONFIGURATION AND DATABASE CONNECTION ---
 require_once '../config/db_config.php';
+require_once '../lib/functions/security_helpers.php'; // <-- THE FIX
+
 session_start(); // Start the session to handle cart data later
+
+generate_csrf_token();
 
 // --- INITIALIZE VARIABLES ---
 $product = null;
@@ -99,6 +103,7 @@ require_once __DIR__ . '/../templates/header.php';
 
                 <!-- Add to Cart Form -->
                 <form action="cart_actions.php" method="POST">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <input type="hidden" name="action" value="add">
                     <input type="hidden" name="product_id" value="<?= $product['product_id'] ?>">
 

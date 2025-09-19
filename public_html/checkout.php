@@ -28,7 +28,7 @@ $cart_total = 0;
 $error_message = '';
 
 try {
-    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
+    // $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
     // 1. Fetch logged-in user's data to pre-fill the form
@@ -116,7 +116,7 @@ $page_title = 'Checkout';
     <link rel="stylesheet" href="/alsmweb/public_html/assets/css/reset.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/alsmweb/public_html/assets/css/style.css">
-    <script src="https://js.stripe.com/v3/"></script>
+
 </head>
 <body>
     <?php require __DIR__ . '/../templates/header.php'; ?>
@@ -129,8 +129,26 @@ $page_title = 'Checkout';
         <?php else: ?>
             <div class="row g-5">
                 <div class="col-md-7 col-lg-8">
-                    <!-- 3. Add the token to the form as a data attribute for JavaScript to access -->
-                    <form id="payment-form" data-csrf-token="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                    <hr class="my-4">
+
+                    <h4 class="mb-3">Payment Method</h4>
+                    <div class="my-3">
+                        <div class="form-check">
+                            <input id="directdeposit" name="paymentMethod" type="radio" class="form-check-input" checked required>
+                            <label class="form-check-label" for="directdeposit">Direct Deposit</label>
+                        </div>
+                        <div class="form-check">
+                            <input id="paypal" name="paymentMethod" type="radio" class="form-check-input" required>
+                            <label class="form-check-label" for="paypal">PayPal</label>
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        <p class="mb-1"><strong>For Direct Deposit:</strong> Bank details will be provided on the next page.</p>
+                        <p class="mb-0"><strong>For PayPal:</strong> We will email you a PayPal invoice after you place your order.</p>
+                    </div>
+                    
+                    <form action="place_order.php" method="POST">
                         <h4 class="mb-3">Shipping Address</h4>
                         <div class="row g-3">
                             <div class="col-sm-6">
@@ -154,12 +172,12 @@ $page_title = 'Checkout';
                         <hr class="my-4">
 
                         <h4 class="mb-3">Payment Details</h4>
-                        <div id="card-element" class="form-control p-3"></div>
-                        <div id="card-errors" role="alert" class="text-danger mt-2"></div>
+
 
                         <hr class="my-4">
 
-                        <button id="submit-button" class="w-100 btn btn-primary btn-lg">Pay $<?= htmlspecialchars(number_format($cart_total, 2)) ?></button>
+                        
+                        <button class="w-100 btn btn-primary btn-lg" type="submit">Place Order</button>
                     </form>
                 </div>
 
@@ -186,6 +204,6 @@ $page_title = 'Checkout';
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/alsmweb/public_html/assets/js/main.js"></script>
-    <script src="/alsmweb/public_html/assets/js/checkout.js" defer></script>
+
 </body>
 </html>
