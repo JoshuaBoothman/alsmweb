@@ -13,7 +13,7 @@ require_once '../config/db_config.php';
 $events = [];
 $error_message = '';
 try {
-    $sql = "SELECT event_id, event_name, start_date, end_date, location FROM events WHERE event_IsDeleted = 0 ORDER BY start_date DESC";
+    $sql = "SELECT event_id, event_name, start_date, end_date, location, is_archived FROM events WHERE event_IsDeleted = 0 ORDER BY start_date DESC";
     $stmt = $pdo->query($sql);
     $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -48,6 +48,7 @@ require_once __DIR__ . '/../templates/header.php';
                 <th>Event Name</th>
                 <th>Dates</th>
                 <th>Location</th>
+                <th>Status</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -58,6 +59,11 @@ require_once __DIR__ . '/../templates/header.php';
                         <td><?= htmlspecialchars($event['event_name']) ?></td>
                         <td><?= date('d M Y', strtotime($event['start_date'])) ?> - <?= date('d M Y', strtotime($event['end_date'])) ?></td>
                         <td><?= htmlspecialchars($event['location']) ?></td>
+                        <td>
+                            <span class="badge <?= $event['is_archived'] ? 'bg-secondary' : 'bg-success' ?>">
+                                <?= $event['is_archived'] ? 'Archived' : 'Live' ?>
+                            </span>
+                        </td>
                         <td>
                             <a href="manage_sub_events.php?event_id=<?= $event['event_id'] ?>" class="btn btn-info btn-sm">Manage Sub-Events</a>
                             <a href="edit_event.php?id=<?= $event['event_id'] ?>" class="btn btn-primary btn-sm">Edit</a>

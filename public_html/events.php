@@ -8,7 +8,7 @@ try {
     // Select all events that are not soft-deleted and order them by start date
     $sql = "SELECT event_id, event_name, description, start_date, end_date, location 
             FROM events 
-            WHERE event_IsDeleted = 0 
+            WHERE event_IsDeleted = 0 AND (is_archived = 0 OR is_archived IS NULL)
             ORDER BY start_date ASC";
     $stmt = $pdo->query($sql);
     $events = $stmt->fetchAll(PDO::FETCH_ASSOC);

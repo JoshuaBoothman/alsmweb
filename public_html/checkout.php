@@ -116,7 +116,7 @@ $page_title = 'Checkout';
     <link rel="stylesheet" href="/alsmweb/public_html/assets/css/reset.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/alsmweb/public_html/assets/css/style.css">
-
+    <script src="https://www.paypal.com/sdk/js?client-id=<?= PAYPAL_CLIENT_ID ?>&currency=AUD"></script>
 </head>
 <body>
     <?php require __DIR__ . '/../templates/header.php'; ?>
@@ -129,26 +129,9 @@ $page_title = 'Checkout';
         <?php else: ?>
             <div class="row g-5">
                 <div class="col-md-7 col-lg-8">
-                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
-                    <hr class="my-4">
+                    <form id="payment-form" action="place_order.php" method="POST">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
 
-                    <h4 class="mb-3">Payment Method</h4>
-                    <div class="my-3">
-                        <div class="form-check">
-                            <input id="directdeposit" name="paymentMethod" type="radio" class="form-check-input" checked required>
-                            <label class="form-check-label" for="directdeposit">Direct Deposit</label>
-                        </div>
-                        <div class="form-check">
-                            <input id="paypal" name="paymentMethod" type="radio" class="form-check-input" required>
-                            <label class="form-check-label" for="paypal">PayPal</label>
-                        </div>
-                    </div>
-                    <div class="alert alert-info">
-                        <p class="mb-1"><strong>For Direct Deposit:</strong> Bank details will be provided on the next page.</p>
-                        <p class="mb-0"><strong>For PayPal:</strong> We will email you a PayPal invoice after you place your order.</p>
-                    </div>
-                    
-                    <form action="place_order.php" method="POST">
                         <h4 class="mb-3">Shipping Address</h4>
                         <div class="row g-3">
                             <div class="col-sm-6">
@@ -171,13 +154,24 @@ $page_title = 'Checkout';
 
                         <hr class="my-4">
 
-                        <h4 class="mb-3">Payment Details</h4>
-
-
+                        <h4 class="mb-3">Payment Method</h4>
+                        <div class="my-3">
+                            <div class="form-check">
+                                <input id="directdeposit" name="paymentMethod" type="radio" class="form-check-input" value="dd" checked required>
+                                <label class="form-check-label" for="directdeposit">Direct Deposit</label>
+                            </div>
+                            <div class="form-check">
+                                <input id="paypal" name="paymentMethod" type="radio" class="form-check-input" value="paypal" required>
+                                <label class="form-check-label" for="paypal">PayPal</label>
+                            </div>
+                        </div>
+                        
                         <hr class="my-4">
 
-                        
-                        <button class="w-100 btn btn-primary btn-lg" type="submit">Place Order</button>
+                        <button id="direct-deposit-submit" class="w-100 btn btn-primary btn-lg" type="submit">Place Order (Direct Deposit)</button>
+
+                        <div id="paypal-button-container" class="mt-3" style="display: none;">
+                            </div>
                     </form>
                 </div>
 
@@ -205,5 +199,57 @@ $page_title = 'Checkout';
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/alsmweb/public_html/assets/js/main.js"></script>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const ddRadio = document.getElementById('directdeposit');
+            const paypalRadio = document.getElementById('paypal');
+            const ddSubmitButton = document.getElementById('direct-deposit-submit');
+            const paypalContainer = document.getElementById('paypal-button-container');
+            const mainForm = document.getElementById('payment-form');
+            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+
+            function togglePaymentMethod() {
+                if (paypalRadio.checked) {
+                    ddSubmitButton.style.display = 'none';
+                    paypalContainer.style.display = 'block';
+                    mainForm.onsubmit = (e) => e.preventDefault();
+                } else {
+                    ddSubmitButton.style.display = 'block';
+                    paypalContainer.style.display = 'none';
+                    mainForm.onsubmit = null;
+                }
+            }
+
+            ddRadio.addEventListener('change', togglePaymentMethod);
+            paypalRadio.addEventListener('change', togglePaymentMethod);
+            togglePaymentMethod();
+
+            paypal.Buttons({
+                createOrder: function(data, actions) {
+                    return fetch('/alsmweb/public_html/api/paypal_create_order.php', {
+                        method: 'post'
+                    }).then(res => res.json()).then(orderData => orderData.orderID);
+                },
+                onApprove: function(data, actions) {
+                    return fetch('/alsmweb/public_html/api/paypal_capture_order.php', {
+                        method: 'post',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ orderID: data.orderID })
+                    }).then(res => res.json()).then(orderData => {
+                        if (orderData.status === 'success') {
+                            window.location.href = orderData.redirect_url;
+                        } else {
+                            alert('There was an issue processing your payment. Please try again.');
+                            console.error('Capture Error:', orderData);
+                        }
+                    });
+                },
+                onError: function(err) {
+                    console.error('An error occurred with the PayPal button:', err);
+                    alert('An error occurred. Please try refreshing the page or select Direct Deposit.');
+                }
+            }).render('#paypal-button-container');
+        });
+        </script>
 </body>
 </html>

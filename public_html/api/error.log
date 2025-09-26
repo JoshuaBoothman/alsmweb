@@ -1,0 +1,4 @@
+[20-Sep-2025 08:20:57 Europe/Berlin] PHP Fatal error:  Uncaught Error: Cannot use object of type PaypalServerSdkLib\Models\Order as array in C:\xampp\htdocs\alsmweb\public_html\api\paypal_create_order.php:104
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\alsmweb\public_html\api\paypal_create_order.php on line 104

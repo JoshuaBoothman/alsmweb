@@ -31,6 +31,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $end_date = trim($_POST['end_date']);
     $location = trim($_POST['location']);
     $description = $_POST['description'];
+    $is_archived = isset($_POST['is_archived']) ? 1 : 0;
 
     if (empty($event_name) || empty($start_date) || empty($end_date) || empty($location)) {
         $error_message = "All fields except description are required.";
@@ -44,7 +45,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 start_date = :start_date, 
                 end_date = :end_date, 
                 location = :location, 
-                event_UpdatedByUser_Id = :admin_id 
+                event_UpdatedByUser_Id = :admin_id,
+                is_archived = :is_archived 
             WHERE event_id = :event_id";
 
             $stmt = $pdo->prepare($sql);
@@ -55,6 +57,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 ':end_date' => $end_date,
                 ':location' => $location,
                 ':admin_id' => $_SESSION['user_id'],
+                ':is_archived' => $is_archived,
                 ':event_id' => $event_id
             ]);
 
@@ -66,6 +69,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
     $event = $_POST;
+    // Ensure is_archived is also retained on error
+    $event['is_archived'] = $is_archived;
 } else {
     // --- DATA FETCHING for page load ---
     try {
@@ -125,6 +130,12 @@ require_once __DIR__ . '/../templates/header.php';
             <input type="text" class="form-control" id="location" name="location" value="<?= htmlspecialchars($event['location']) ?>" required>
         </div>
 
+        <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="is_archived" name="is_archived" value="1" <?= !empty($event['is_archived']) && $event['is_archived'] ? 'checked' : '' ?>>
+            <label class="form-check-label" for="is_archived">Archive this event</label>
+            <small class="form-text text-muted d-block">Archived events will be hidden from public view but retained in the system.</small>
+        </div>
+        
         <button type="submit" class="btn btn-primary">Update Event</button>
         <a href="manage_events.php" class="btn btn-secondary">Cancel</a>
     </form>

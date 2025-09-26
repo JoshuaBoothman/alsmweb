@@ -2,7 +2,7 @@
 // public_html/contact.php
 
 require_once '../lib/functions/security_helpers.php';
-session_start();
+// session_start();
 
 // Generate a token for the form to use
 generate_csrf_token();
