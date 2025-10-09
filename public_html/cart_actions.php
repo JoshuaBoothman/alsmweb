@@ -52,13 +52,18 @@ if ($action === 'add_booking' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     }
 
+    // Get first name and surname from the form
+    $first_name = trim($_POST['first_name']);
+    $surname = trim($_POST['surname']);
+
     $campsite_id = filter_input(INPUT_POST, 'campsite_id', FILTER_VALIDATE_INT);
     $check_in = trim($_POST['check_in']);
     $check_out = trim($_POST['check_out']);
     $num_guests = filter_input(INPUT_POST, 'num_guests', FILTER_VALIDATE_INT);
     $user_id = $_SESSION['user_id'];
 
-    if (!$campsite_id || !$check_in || !$check_out || !$num_guests || $num_guests < 1) {
+    // Modified: Added first_name and surname to the validation check
+    if (!$campsite_id || !$check_in || !$check_out || !$num_guests || $num_guests < 1 || empty($first_name) || empty($surname)) {
         header('Location: campsite_booking.php?error=invaliddata');
         exit();
     }
@@ -87,8 +92,9 @@ if ($action === 'add_booking' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $nights = $check_out_dt->diff($check_in_dt)->days;
         $total_price = $nights * $price_per_night;
 
-        $sql_insert = "INSERT INTO bookings (user_id, campsite_id, check_in_date, check_out_date, num_guests, total_price, status) 
-                       VALUES (:user_id, :campsite_id, :check_in, :check_out, :num_guests, :total_price, 'Pending Basket')";
+        // Modified: Added first_name and surname to the SQL INSERT statement
+        $sql_insert = "INSERT INTO bookings (user_id, campsite_id, check_in_date, check_out_date, num_guests, total_price, status, first_name, surname) 
+               VALUES (:user_id, :campsite_id, :check_in, :check_out, :num_guests, :total_price, 'Pending Basket', :first_name, :surname)";
         $stmt_insert = $pdo->prepare($sql_insert);
         $stmt_insert->execute([
             ':user_id' => $user_id,
@@ -96,7 +102,9 @@ if ($action === 'add_booking' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             ':check_in' => $check_in,
             ':check_out' => $check_out,
             ':num_guests' => $num_guests,
-            ':total_price' => $total_price
+            ':total_price' => $total_price,
+            ':first_name' => $first_name,
+            ':surname' => $surname
         ]);
         $booking_id = $pdo->lastInsertId();
 

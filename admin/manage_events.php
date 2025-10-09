@@ -65,7 +65,8 @@ require_once __DIR__ . '/../templates/header.php';
                             </span>
                         </td>
                         <td>
-                            <a href="manage_sub_events.php?event_id=<?= $event['event_id'] ?>" class="btn btn-info btn-sm">Manage Sub-Events</a>
+                            <a href="view_event_attendees.php?event_id=<?= $event['event_id'] ?>" class="btn btn-success btn-sm">Attendees</a>
+                            <a href="manage_sub_events.php?event_id=<?= $event['event_id'] ?>" class="btn btn-info btn-sm">Sub-Events</a>
                             <a href="edit_event.php?id=<?= $event['event_id'] ?>" class="btn btn-primary btn-sm">Edit</a>
                             <a href="delete_event.php?id=<?= $event['event_id'] ?>" class="btn btn-danger btn-sm">Delete</a>
                         </td>

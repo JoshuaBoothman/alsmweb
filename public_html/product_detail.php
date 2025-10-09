@@ -3,7 +3,7 @@
 require_once '../config/db_config.php';
 require_once '../lib/functions/security_helpers.php'; // <-- THE FIX
 
-session_start(); // Start the session to handle cart data later
+ // session_start(); // Start the session to handle cart data later
 
 generate_csrf_token();
 
@@ -36,20 +36,25 @@ if (!$product_id) {
                 pv.variant_id, pv.sku, pv.price, pv.stock_quantity,
                 pvo.option_id,
                 a.name AS attribute_name,
-                ao.value AS option_value
+                ao.value AS option_value,
+                ao.sort_order                 -- <-- FETCH THE NEW COLUMN
             FROM product_variants AS pv
             JOIN product_variant_options AS pvo ON pv.variant_id = pvo.variant_id
             JOIN attribute_options AS ao ON pvo.option_id = ao.option_id
             JOIN attributes AS a ON ao.attribute_id = a.attribute_id
             WHERE pv.product_id = :product_id AND pv.is_active = 1
-            ORDER BY pv.variant_id, a.name";
+            ORDER BY 
+                pv.variant_id, 
+                a.name, 
+                ao.sort_order,                -- <-- ORDER BY IT!
+                ao.value                      -- Fallback for items with same sort_order
+        ";
         
         $stmt_variants = $pdo->prepare($sql_variants);
         $stmt_variants->execute([':product_id' => $product_id]);
         $results = $stmt_variants->fetchAll(PDO::FETCH_ASSOC);
         
-        // 3. Process the results into a structured array for easy use in HTML
-        // This creates an array of variants, where each variant has an array of its options.
+        // 3. Process the results into a structured array
         $temp_variants = [];
         foreach ($results as $row) {
             $temp_variants[$row['variant_id']]['details'] = [
@@ -61,17 +66,21 @@ if (!$product_id) {
         }
         $variants = $temp_variants;
 
-        // 4. Create a unique list of attributes and options for the dropdowns
-        foreach ($variants as $variant) {
-            foreach ($variant['options'] as $attr_name => $opt_value) {
-                $attributes[$attr_name][] = $opt_value;
+        // 4. Create a unique list of attributes and options, PRESERVING the sort order from SQL
+        $options_with_stock = [];
+        foreach ($variants as $variant_id => $variant_data) {
+            $stock_quantity = $variant_data['details']['stock_quantity'];
+            // This loop handles all options within a variant (e.g., 'Size', 'Color')
+            foreach ($variant_data['options'] as $attr_name => $option_value) {
+                // We need to store the options sorted correctly
+                // The SQL query already sorts them, so we just add them in order
+                if (!isset($options_with_stock[$attr_name])) {
+                    $options_with_stock[$attr_name] = [];
+                }
+                // This ensures no duplicates and stores the stock
+                $options_with_stock[$attr_name][$option_value] = $stock_quantity;
             }
         }
-        foreach ($attributes as $key => $value) {
-            $attributes[$key] = array_unique($value);
-            sort($attributes[$key]);
-        }
-
     } catch (Exception $e) {
         $error_message = "Error: " . $e->getMessage();
     }
@@ -102,25 +111,38 @@ require_once __DIR__ . '/../templates/header.php';
                 <hr>
 
                 <!-- Add to Cart Form -->
+
                 <form action="cart_actions.php" method="POST">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <input type="hidden" name="action" value="add">
                     <input type="hidden" name="product_id" value="<?= $product['product_id'] ?>">
 
-                    <?php if (!empty($attributes)): ?>
-                        <h5>Options</h5>
-                        <?php foreach ($attributes as $attr_name => $options_array): ?>
-                            <div class="mb-3">
-                                <label for="attr_<?= str_replace(' ', '_', $attr_name) ?>" class="form-label"><strong><?= htmlspecialchars($attr_name) ?>:</strong></label>
-                                <select class="form-select" name="options[<?= htmlspecialchars($attr_name) ?>]" id="attr_<?= str_replace(' ', '_', $attr_name) ?>" required>
-                                    <option value="">Select <?= htmlspecialchars($attr_name) ?></option>
-                                    <?php foreach ($options_array as $option): ?>
-                                        <option value="<?= htmlspecialchars($option) ?>"><?= htmlspecialchars($option) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                    <?php if (!empty($options_with_stock)): ?>
+                    <h5>Options</h5>
+                    <?php foreach ($options_with_stock as $attr_name => $options_array): ?>
+                        <div class="mb-3">
+                            <label for="attr_<?= str_replace(' ', '_', $attr_name) ?>" class="form-label"><strong><?= htmlspecialchars($attr_name) ?>:</strong></label>
+                            <select class="form-select" name="options[<?= htmlspecialchars($attr_name) ?>]" id="attr_<?= str_replace(' ', '_', $attr_name) ?>" required>
+                                <option value="">Select <?= htmlspecialchars($attr_name) ?></option>
+                                
+                                <?php foreach ($options_array as $option_value => $stock_quantity): ?>
+                                    <?php
+                                        // Determine if the option should be disabled
+                                        $disabled = ($stock_quantity <= 0) ? 'disabled' : '';
+                                        // Create the display text, adding "(Out of Stock)" if needed
+                                        $display_text = ($stock_quantity <= 0) 
+                                            ? htmlspecialchars($option_value) . ' (Out of Stock)' 
+                                            : htmlspecialchars($option_value);
+                                    ?>
+                                    <option value="<?= htmlspecialchars($option_value) ?>" <?= $disabled ?>>
+                                        <?= $display_text ?>
+                                    </option>
+                                <?php endforeach; ?>
+
+                            </select>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
 
                     <div class="row align-items-end">
                         <div class="col-md-4">

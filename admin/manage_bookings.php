@@ -49,6 +49,7 @@ try {
     // This is a complex query that joins four tables to get all the necessary information.
     $sql = "SELECT 
                 b.booking_id, b.check_in_date, b.check_out_date, b.total_price, b.status, b.booking_date,
+                b.first_name, b.surname,
                 u.username,
                 cs.name AS campsite_name,
                 cg.name AS campground_name
@@ -91,7 +92,7 @@ require_once __DIR__ . '/../templates/header.php';
             <thead class="table-dark">
                 <tr>
                     <th>ID</th>
-                    <th>Customer</th>
+                    <th>Booked For (User)</th>
                     <th>Campground</th>
                     <th>Site</th>
                     <th>Dates</th>
@@ -105,7 +106,10 @@ require_once __DIR__ . '/../templates/header.php';
                     <?php foreach ($bookings as $booking): ?>
                         <tr>
                             <td><?= htmlspecialchars($booking['booking_id']) ?></td>
-                            <td><?= htmlspecialchars($booking['username']) ?></td>
+                            <td>
+                                <?= htmlspecialchars($booking['first_name'] . ' ' . $booking['surname']) ?>
+                                <small class="d-block text-muted">(User: <?= htmlspecialchars($booking['username']) ?>)</small>
+                            </td>
                             <td><?= htmlspecialchars($booking['campground_name']) ?></td>
                             <td><?= htmlspecialchars($booking['campsite_name']) ?></td>
                             <td><?= date('d M Y', strtotime($booking['check_in_date'])) . ' - ' . date('d M Y', strtotime($booking['check_out_date'])) ?></td>

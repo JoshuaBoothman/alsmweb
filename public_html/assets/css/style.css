@@ -42,3 +42,13 @@ main {
 .navbar.bg-dark {
   background-color: #0069D9 !important;
 }/*# sourceMappingURL=style.css.map */
+
+/*
+ * Custom style for product cards to ensure uniform image height.
+ * This makes the product grid look clean and aligned.
+*/
+.product-card-img {
+    height: 250px;       /* Sets a fixed height for the image area. */
+    object-fit: cover;   /* Scales the image to fill the space, cropping if necessary. */
+    width: 100%;         /* Ensures the image still spans the full width of the card. */
+}

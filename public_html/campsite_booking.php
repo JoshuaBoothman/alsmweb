@@ -12,11 +12,24 @@ $page_title = 'ALSM - Campsite Booking';
 $error_message = '';
 $campgrounds_with_sites = [];
 $unavailable_campsite_ids = [];
+$user = null;
 
 // --- GET DATES FROM FORM SUBMISSION ---
 $check_in_date = $_GET['check_in'] ?? '';
 $check_out_date = $_GET['check_out'] ?? '';
 $dates_selected = !empty($check_in_date) && !empty($check_out_date);
+
+// Fetch logged-in user's details to pre-fill name fields
+if (isset($_SESSION['user_id'])) {
+    try {
+        $stmt_user = $pdo->prepare("SELECT first_name, last_name FROM Users WHERE user_id = :user_id");
+        $stmt_user->execute([':user_id' => $_SESSION['user_id']]);
+        $user = $stmt_user->fetch(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        // Fail silently, form will just not be pre-filled
+    }
+}
+
 
 // --- DATA FETCHING ---
 try {
@@ -137,9 +150,19 @@ require_once __DIR__ . '/../templates/header.php';
                                                     <input type="hidden" name="check_in" value="<?= htmlspecialchars($check_in_date) ?>">
                                                     <input type="hidden" name="check_out" value="<?= htmlspecialchars($check_out_date) ?>">
                                                     
-                                                    <div class="mb-2">
-                                                        <label for="num_guests_<?= $site['campsite_id'] ?>" class="form-label">Number of Guests</label>
-                                                        <input type="number" name="num_guests" id="num_guests_<?= $site['campsite_id'] ?>" class="form-control" value="1" min="1" max="8" required>
+                                                    <div class="row g-2 mb-2">
+                                                        <div class="col-6">
+                                                            <label for="first_name_<?= $site['campsite_id'] ?>" class="form-label">First Name</label>
+                                                            <input type="text" name="first_name" id="first_name_<?= $site['campsite_id'] ?>" class="form-control" value="<?= htmlspecialchars($user['first_name'] ?? '') ?>" required>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <label for="surname_<?= $site['campsite_id'] ?>" class="form-label">Surname</label>
+                                                            <input type="text" name="surname" id="surname_<?= $site['campsite_id'] ?>" class="form-control" value="<?= htmlspecialchars($user['last_name'] ?? '') ?>" required>
+                                                        </div>
+                                                        <div class="col-12">
+                                                            <label for="num_guests_<?= $site['campsite_id'] ?>" class="form-label">Number of Guests</label>
+                                                            <input type="number" name="num_guests" id="num_guests_<?= $site['campsite_id'] ?>" class="form-control" value="1" min="1" max="8" required>
+                                                        </div>
                                                     </div>
 
                                                     <?php if (isset($_SESSION['user_id'])): ?>

@@ -40,7 +40,8 @@ require_once __DIR__ . '/../templates/header.php';
             <?php foreach ($products as $product): ?>
                 <div class="col-lg-4 col-md-6 mb-4">
                     <div class="card h-100">
-                        <img src="<?= htmlspecialchars($product['image_path'] ?? 'https://placehold.co/400x300?text=No+Image') ?>" class="card-img-top" alt="<?= htmlspecialchars($product['product_name']) ?>">
+                        
+                        <img src="<?= htmlspecialchars($product['image_path'] ?? 'https://placehold.co/400x300?text=No+Image') ?>" class="card-img-top product-card-img" alt="<?= htmlspecialchars($product['product_name']) ?>">
                         <div class="card-body">
                             <h5 class="card-title"><?= htmlspecialchars($product['product_name']) ?></h5>
                             <p class="card-text"><?= htmlspecialchars(substr($product['description'], 0, 100)) . (strlen($product['description']) > 100 ? '...' : '') ?></p>

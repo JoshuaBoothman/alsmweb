@@ -50,11 +50,48 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if ($stock_quantity === false || $stock_quantity < 0) {
         $errors[] = "Stock Quantity must be a valid, non-negative integer.";
     }
+
+    // --- Handle Image Upload ---
+    $image_path = null; // Default to null if no image is uploaded
+    if (isset($_FILES['product_image']) && $_FILES['product_image']['error'] == 0) {
+        $upload_dir = '../public_html/assets/images/products/';
+        
+        // Ensure the upload directory exists
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0755, true);
+        }
+
+        $file_name = uniqid() . '-' . basename($_FILES['product_image']['name']);
+        $target_file = $upload_dir . $file_name;
+        $imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
+
+        // Image validation
+        $check = getimagesize($_FILES['product_image']['tmp_name']);
+        if ($check === false) {
+            $errors[] = "File is not an image.";
+        }
+        if ($_FILES['product_image']['size'] > 2000000) { // 2MB limit
+            $errors[] = "Sorry, your file is too large (max 2MB).";
+        }
+        if (!in_array($imageFileType, ['jpg', 'jpeg', 'png', 'gif'])) {
+            $errors[] = "Sorry, only JPG, JPEG, PNG & GIF files are allowed.";
+        }
+        // Proceed with upload if no new validation errors occurred
+        if (empty($errors)) {
+            if (move_uploaded_file($_FILES['product_image']['tmp_name'], $target_file)) {
+                // File uploaded successfully, set the path for DB insertion
+                $image_path = '/alsmweb/public_html/assets/images/products/' . $file_name;
+            } else {
+                $errors[] = "Sorry, there was an error uploading your file.";
+            }
+        }
+    }
+
     
     // 3. If validation passes, proceed with database insertion.
     if (empty($errors)) {
         try {
-            $sql = "INSERT INTO products (product_name, description, category_id, base_price, stock_quantity) VALUES (:product_name, :description, :category_id, :base_price, :stock_quantity)";
+            $sql = "INSERT INTO products (product_name, description, category_id, base_price, stock_quantity, image_path) VALUES (:product_name, :description, :category_id, :base_price, :stock_quantity, :image_path)";
             $stmt = $pdo->prepare($sql);
             
             $stmt->execute([
@@ -62,7 +99,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 ':description' => $description,
                 ':category_id' => $category_id,
                 ':base_price' => $base_price,
-                ':stock_quantity' => $stock_quantity
+                ':stock_quantity' => $stock_quantity,
+                ':image_path' => $image_path
             ]);
 
             // Set success message and redirect
@@ -102,7 +140,7 @@ generate_csrf_token();
                 You must <a href="add_category.php">create a category</a> before you can add a product.
             </div>
         <?php else: ?>
-        <form action="add_product.php" method="POST">
+        <form action="add_product.php" method="POST" enctype="multipart/form-data">
             <!-- CSRF Token for security -->
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
             <div class="mb-3">
@@ -125,6 +163,12 @@ generate_csrf_token();
             <div class="mb-3">
                 <label for="description" class="form-label">Description</label>
                 <textarea class="form-control" id="description" name="description" rows="4"><?= isset($_POST['description']) ? htmlspecialchars($_POST['description']) : '' ?></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label for="product_image" class="form-label">Product Image (Optional)</label>
+                <input class="form-control" type="file" id="product_image" name="product_image">
+                <div class="form-text">Accepted formats: JPG, PNG, GIF. Max size: 2MB.</div>
             </div>
 
             <div class="row">

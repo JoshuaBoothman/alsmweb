@@ -18,7 +18,7 @@ $error_message = '';
 try {
     // This query fetches all campgrounds and joins with the events table
     // to display which event each campground belongs to.
-    $sql = "SELECT c.campground_id, c.name, c.is_active, e.event_name 
+    $sql = "SELECT c.campground_id, c.event_id, c.name, c.is_active, e.event_name 
             FROM campgrounds c
             JOIN events e ON c.event_id = e.event_id
             ORDER BY e.start_date DESC, c.name ASC";
@@ -75,6 +75,7 @@ require_once __DIR__ . '/../templates/header.php';
                         </td>
                         <td>
                             <a href="manage_campsites.php?campground_id=<?= $campground['campground_id'] ?>" class="btn btn-info btn-sm">Manage Sites</a>
+                            <a href="booking_grid_report.php?event_id=<?= $campground['event_id'] ?>&campground_id=<?= $campground['campground_id'] ?>" class="btn btn-success btn-sm">Booking Grid</a>
                             <a href="edit_campground.php?id=<?= $campground['campground_id'] ?>" class="btn btn-primary btn-sm">Edit</a>
                             <a href="delete_campground.php?id=<?= $campground['campground_id'] ?>" class="btn btn-danger btn-sm">Delete</a>
                         </td>
