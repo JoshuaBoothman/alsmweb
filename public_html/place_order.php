@@ -123,6 +123,49 @@ try {
         // $pdo->prepare("UPDATE payments SET booking_id = ? WHERE payment_id = ?")->execute([$primary_booking_id, $payment_id]);
     }
     
+    // --- Process Sub-Event Addons ---
+    // 4. Process Sub-Event Addons
+    $addon_packages = array_filter($_SESSION['cart'], fn($item) => $item['type'] === 'sub_event_addon');
+    if (!empty($addon_packages)) {
+        // Fetch all sub-event details in one go for efficiency
+        $sql_sub_events = "SELECT sub_event_id, sub_event_name, cost FROM subevents";
+        $sub_event_details_map = $pdo->query($sql_sub_events)->fetchAll(PDO::FETCH_GROUP | PDO::FETCH_UNIQUE);
+
+        foreach ($addon_packages as $key => $package) {
+            $addon_total = 0;
+            $addon_details_display = []; // For creating a descriptive summary
+
+            // Fetch the names of the attendees in this specific registration
+            $sql_attendees = "SELECT attendee_id, CONCAT(first_name, ' ', surname) FROM attendees WHERE eventreg_id = ?";
+            $stmt_attendees = $pdo->prepare($sql_attendees);
+            $stmt_attendees->execute([$package['registration_id']]);
+            $attendee_names_map = $stmt_attendees->fetchAll(PDO::FETCH_KEY_PAIR);
+
+            // Loop through the selections to calculate total and build summary
+            foreach($package['details'] as $sub_event_id => $attendee_ids) {
+                $cost = $sub_event_details_map[$sub_event_id]['cost'] ?? 0;
+                $sub_event_name = $sub_event_details_map[$sub_event_id]['sub_event_name'] ?? 'Unknown Sub-Event';
+                
+                $attendee_names_for_this_sub = [];
+                foreach ($attendee_ids as $attendee_id) {
+                    $addon_total += $cost;
+                    $attendee_names_for_this_sub[] = $attendee_names_map[$attendee_id] ?? 'Unknown Attendee';
+                }
+                // Create a nice summary line, e.g., "Competition A (Josh Boothman, Jane Doe)"
+                $addon_details_display[] = htmlspecialchars($sub_event_name) . ' (' . implode(', ', $attendee_names_for_this_sub) . ')';
+            }
+
+            $cart_items[$key] = [
+                'type' => 'sub_event_addon',
+                'name' => 'Sub-Event Add-on',
+                'options' => 'For registration #' . $package['registration_id'],
+                'details' => implode('<br>', $addon_details_display), // Use our new summary
+                'subtotal' => $addon_total
+            ];
+            $cart_total += $addon_total;
+        }
+    }
+
     // Process Event Registrations
     $registration_package = current(array_filter($cart, fn($item) => $item['type'] === 'registration'));
     if ($registration_package) {

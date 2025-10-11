@@ -253,6 +253,31 @@ if ($action === 'remove' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     exit();
 }
 
+// --- HANDLE ADD SUB-EVENT ADDONS TO CART ---
+if ($action === 'add_sub_event_addon' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    validate_csrf_token(); // CSRF Check
+
+    $registration_id = filter_input(INPUT_POST, 'registration_id', FILTER_VALIDATE_INT);
+    $sub_event_addons = $_POST['sub_event_addons'] ?? [];
+
+    if (!$registration_id || empty($sub_event_addons)) {
+        header('Location: profile.php?error=noselections');
+        exit();
+    }
+
+    // Create a unique key for this addon package in the cart
+    $cart_item_key = 'addon_' . $registration_id;
+
+    // Add or overwrite the addon item in the cart
+    $_SESSION['cart'][$cart_item_key] = [
+        'type' => 'sub_event_addon',
+        'registration_id' => $registration_id,
+        'details' => $sub_event_addons // This holds the structure: [sub_event_id => [attendee_id1, attendee_id2]]
+    ];
+
+    header('Location: view_cart.php?status=addon_added');
+    exit();
+}
 
 // Fallback redirect if no valid action is provided
 header('Location: index.php');

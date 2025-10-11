@@ -97,6 +97,26 @@ try {
         }
     }
 
+    // 4. Process Sub-Event Addons
+    $addon_packages = array_filter($_SESSION['cart'], fn($item) => $item['type'] === 'sub_event_addon');
+    if (!empty($addon_packages)) {
+        // Fetch all sub-event costs once for efficiency
+        $sql_addon_costs = "SELECT sub_event_id, cost FROM subevents";
+        $addon_costs_map = $pdo->query($sql_addon_costs)->fetchAll(PDO::FETCH_KEY_PAIR);
+
+        // Loop through each add-on package in the cart
+        foreach ($addon_packages as $key => $package) {
+            $addon_total = 0;
+            // Loop through the selections in the package to calculate its total
+            foreach($package['details'] as $sub_event_id => $attendee_ids) {
+                $cost = $addon_costs_map[$sub_event_id] ?? 0;
+                $addon_total += count($attendee_ids) * $cost;
+            }
+            // Add the package's total to the grand total
+            $cart_total += $addon_total;
+        }
+    }
+
 } catch (PDOException $e) {
     $error_message = "Database error: " . $e->getMessage();
 }

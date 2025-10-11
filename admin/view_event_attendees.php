@@ -169,6 +169,7 @@ require_once __DIR__ . '/../templates/header.php';
                         <th><?= sortableHeader('State', 'state', $sort_col, $sort_dir, $filters, $event_id) ?></th>
                         <th><?= sortableHeader('AUS Num', 'aus_number', $sort_col, $sort_dir, $filters, $event_id) ?></th>
                         <th><?= sortableHeader('Flight Duty', 'flight_line_duty', $sort_col, $sort_dir, $filters, $event_id) ?></th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -186,6 +187,10 @@ require_once __DIR__ . '/../templates/header.php';
                                 <td><?= htmlspecialchars($attendee['state']) ?></td>
                                 <td><?= htmlspecialchars($attendee['aus_number'] ?? 'N/A') ?></td>
                                 <td><?= $attendee['flight_line_duty'] ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>' ?></td>
+                                <td>
+                                    <a href="view_attendee_details.php?id=<?= $attendee['attendee_id'] ?>" class="btn btn-info btn-sm">View</a>
+                                    <a href="edit_attendee.php?id=<?= $attendee['attendee_id'] ?>" class="btn btn-primary btn-sm">Edit</a>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>

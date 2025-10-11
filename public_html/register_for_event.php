@@ -86,7 +86,6 @@ require_once __DIR__ . '/../templates/header.php';
     <?php endif; ?>
 </div>
 
-<!-- Using a <template> tag is the modern, correct way to handle clonable HTML. -->
 <template id="attendee-template">
     <div class="attendee-card card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
@@ -98,7 +97,7 @@ require_once __DIR__ . '/../templates/header.php';
         </div>
         <div class="card-body">
             <div class="row">
-                <div class="col-md-6 mb-3">
+                <div class="col-md-4 mb-3">
                     <label class="form-label">Attendee Type</label>
                     <select name="attendees[__INDEX__][type_id]" class="form-select attendee-type-select" required>
                         <option value="">-- Select Type --</option>
@@ -112,15 +111,85 @@ require_once __DIR__ . '/../templates/header.php';
                         <?php endforeach; ?>
                     </select>
                 </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6 mb-3">
+                <div class="col-md-4 mb-3">
                     <label class="form-label">First Name</label>
                     <input type="text" name="attendees[__INDEX__][first_name]" class="form-control" required>
                 </div>
-                <div class="col-md-6 mb-3">
+                <div class="col-md-4 mb-3">
                     <label class="form-label">Surname</label>
                     <input type="text" name="attendees[__INDEX__][surname]" class="form-control" required>
+                </div>
+            </div>
+
+            <hr>
+            <h6>Contact & Address</h6>
+            <div class="row">
+                 <div class="col-md-6 mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="attendees[__INDEX__][email]" class="form-control">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Phone</label>
+                    <input type="tel" name="attendees[__INDEX__][phone]" class="form-control">
+                </div>
+                <div class="col-12 mb-3">
+                    <label class="form-label">Address</label>
+                    <input type="text" name="attendees[__INDEX__][address]" class="form-control">
+                </div>
+                <div class="col-md-5 mb-3">
+                    <label class="form-label">Suburb</label>
+                    <input type="text" name="attendees[__INDEX__][suburb]" class="form-control">
+                </div>
+                <div class="col-md-4 mb-3">
+                <label class="form-label">State</label>
+                <select name="attendees[__INDEX__][state]" class="form-select">
+                    <option value="">-- Select State --</option>
+                    <option value="ACT">ACT</option>
+                    <option value="NSW">NSW</option>
+                    <option value="NT">NT</option>
+                    <option value="QLD">QLD</option>
+                    <option value="SA">SA</option>
+                    <option value="TAS">TAS</option>
+                    <option value="VIC">VIC</option>
+                    <option value="WA">WA</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Postcode</label>
+                    <input type="text" name="attendees[__INDEX__][postcode]" class="form-control">
+                </div>
+            </div>
+            <hr>
+            <h6>Logistics & Additional Information</h6>
+             <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Arrival Date</label>
+                    <input type="date" name="attendees[__INDEX__][arrival_date]" class="form-control">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Departure Date</label>
+                    <input type="date" name="attendees[__INDEX__][departure_date]" class="form-control">
+                </div>
+            </div>
+             <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Emergency Contact Name</label>
+                    <input type="text" name="attendees[__INDEX__][emergency_contact_name]" class="form-control">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Emergency Contact Phone</label>
+                    <input type="tel" name="attendees[__INDEX__][emergency_contact_phone]" class="form-control">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Dietary Requirements</label>
+                    <textarea name="attendees[__INDEX__][dietary_reqs]" class="form-control" rows="2"></textarea>
+                </div>
+                 <div class="col-md-6 mb-3">
+                    <label class="form-label">Other Notes</label>
+                    <textarea name="attendees[__INDEX__][notes]" class="form-control" rows="2"></textarea>
                 </div>
             </div>
             <div class="conditional-fields"></div>
@@ -146,9 +215,23 @@ document.addEventListener('DOMContentLoaded', function() {
         card.querySelectorAll('[name]').forEach(el => {
             el.name = el.name.replace('__INDEX__', attendeeCounter);
         });
-        
+
+        // --- START: Update this section to pre-fill all fields ---
         if (data.first_name) card.querySelector('[name*="[first_name]"]').value = data.first_name;
         if (data.surname) card.querySelector('[name*="[surname]"]').value = data.surname;
+        if (data.email) card.querySelector('[name*="[email]"]').value = data.email;
+        if (data.phone) card.querySelector('[name*="[phone]"]').value = data.phone;
+        if (data.address) card.querySelector('[name*="[address]"]').value = data.address;
+        if (data.suburb) card.querySelector('[name*="[suburb]"]').value = data.suburb;
+        if (data.state) card.querySelector('[name*="[state]"]').value = data.state;
+        if (data.postcode) card.querySelector('[name*="[postcode]"]').value = data.postcode;
+        if (data.arrival_date) card.querySelector('[name*="[arrival_date]"]').value = data.arrival_date;
+        if (data.departure_date) card.querySelector('[name*="[departure_date]"]').value = data.departure_date;
+        if (data.emergency_contact_name) card.querySelector('[name*="[emergency_contact_name]"]').value = data.emergency_contact_name;
+        if (data.emergency_contact_phone) card.querySelector('[name*="[emergency_contact_phone]"]').value = data.emergency_contact_phone;
+        if (data.dietary_reqs) card.querySelector('[name*="[dietary_reqs]"]').value = data.dietary_reqs;
+        if (data.notes) card.querySelector('[name*="[notes]"]').value = data.notes;
+        // --- END: Update section ---
         
         attendeesContainer.appendChild(newAttendeeFragment);
         

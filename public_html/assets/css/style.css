@@ -52,3 +52,8 @@ main {
     object-fit: cover;   /* Scales the image to fill the space, cropping if necessary. */
     width: 100%;         /* Ensures the image still spans the full width of the card. */
 }
+
+/* Prevents text from wrapping in table cells */
+.no-wrap {
+    white-space: nowrap;
+}

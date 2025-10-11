@@ -90,6 +90,14 @@ require_once __DIR__ . '/../templates/header.php';
                         <div class="card-body">
                            <p>Registered on: <?= date("d M Y", strtotime($rego['registration_date'])) ?></p>
                            <p>Total Cost: $<?= number_format($rego['total_cost'], 2) ?></p>
+
+                           <div class="card-body">
+                                <p>Registered on: <?= date("d M Y", strtotime($rego['registration_date'])) ?></p>
+                                <p>Total Cost: $<?= number_format($rego['total_cost'], 2) ?></p>
+                                <a href="add_sub_events.php?registration_id=<?= $rego['registration_id'] ?>" class="btn btn-info btn-sm">
+                                    Add/View Sub-Events
+                                </a>
+                            </div>
                         </div>
                     </div>
                 <?php endforeach; ?>

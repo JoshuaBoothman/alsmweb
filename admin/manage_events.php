@@ -13,7 +13,41 @@ require_once '../config/db_config.php';
 $events = [];
 $error_message = '';
 try {
-    $sql = "SELECT event_id, event_name, start_date, end_date, location, is_archived FROM events WHERE event_IsDeleted = 0 ORDER BY start_date DESC";
+    // This advanced query joins events with a sub-query that counts and groups attendees.
+    $sql = "
+        SELECT
+            e.event_id,
+            e.event_name,
+            e.start_date,
+            e.end_date,
+            e.location,
+            e.is_archived,
+            -- THE FIX IS HERE: Changed 'ac.type_count' to 'attendee_counts.type_count'
+            GROUP_CONCAT(DISTINCT CONCAT(at.type_name, ': ', attendee_counts.type_count) ORDER BY at.type_name SEPARATOR '<br>') AS attendee_breakdown
+        FROM
+            events e
+        LEFT JOIN (
+            -- This sub-query pre-calculates the count of each attendee type for each event
+            SELECT
+                er.event_id,
+                a.type_id,
+                COUNT(a.attendee_id) AS type_count
+            FROM
+                eventregistrations er
+            JOIN
+                attendees a ON er.registration_id = a.eventreg_id
+            GROUP BY
+                er.event_id, a.type_id
+        ) AS attendee_counts ON e.event_id = attendee_counts.event_id
+        LEFT JOIN
+            attendee_types at ON attendee_counts.type_id = at.type_id
+        WHERE
+            e.event_IsDeleted = 0
+        GROUP BY
+            e.event_id
+        ORDER BY
+            e.start_date DESC
+    ";
     $stmt = $pdo->query($sql);
     $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -46,10 +80,11 @@ require_once __DIR__ . '/../templates/header.php';
         <thead class="table-dark">
             <tr>
                 <th>Event Name</th>
-                <th>Dates</th>
+                <th class="no-wrap">Dates</th>
+                <th class="no-wrap">Attendees</th>
                 <th>Location</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th class="no-wrap">Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -57,14 +92,17 @@ require_once __DIR__ . '/../templates/header.php';
                 <?php foreach ($events as $event): ?>
                     <tr>
                         <td><?= htmlspecialchars($event['event_name']) ?></td>
-                        <td><?= date('d M Y', strtotime($event['start_date'])) ?> - <?= date('d M Y', strtotime($event['end_date'])) ?></td>
+                        <td class="no-wrap"><?= date('d M Y', strtotime($event['start_date'])) ?> - <?= date('d M Y', strtotime($event['end_date'])) ?></td>
+                        <td class="no-wrap">
+                            <?= $event['attendee_breakdown'] ?? '0' ?>
+                        </td>
                         <td><?= htmlspecialchars($event['location']) ?></td>
                         <td>
                             <span class="badge <?= $event['is_archived'] ? 'bg-secondary' : 'bg-success' ?>">
                                 <?= $event['is_archived'] ? 'Archived' : 'Live' ?>
                             </span>
                         </td>
-                        <td>
+                        <td class="no-wrap">
                             <a href="view_event_attendees.php?event_id=<?= $event['event_id'] ?>" class="btn btn-success btn-sm">Attendees</a>
                             <a href="manage_sub_events.php?event_id=<?= $event['event_id'] ?>" class="btn btn-info btn-sm">Sub-Events</a>
                             <a href="edit_event.php?id=<?= $event['event_id'] ?>" class="btn btn-primary btn-sm">Edit</a>

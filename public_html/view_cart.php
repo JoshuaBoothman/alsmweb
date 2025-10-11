@@ -28,7 +28,10 @@ if (isset($_SESSION['cart']) && !empty($_SESSION['cart'])) {
             $booking_ids[] = $item['booking_id'];
         } elseif ($item['type'] === 'registration') {
             $registration_packages[$key] = $item;
+        } elseif ($item['type'] === 'sub_event_addon') {
+            // We'll process this one separately below
         }
+        
     }
 
     try {
@@ -139,6 +142,51 @@ if (isset($_SESSION['cart']) && !empty($_SESSION['cart'])) {
             }
         }
 
+        // 4. Process Sub-Event Addons
+        $addon_packages = array_filter($_SESSION['cart'], fn($item) => $item['type'] === 'sub_event_addon');
+        if (!empty($addon_packages)) {
+            // Fetch all sub-event details in one go for efficiency
+            $sql_sub_events = "SELECT sub_event_id, sub_event_name, cost FROM subevents";
+            $sub_event_details_map = [];
+            foreach ($pdo->query($sql_sub_events) as $row) {
+                $sub_event_details_map[$row['sub_event_id']] = $row;
+            }
+
+            foreach ($addon_packages as $key => $package) {
+                $addon_total = 0;
+                $addon_details_display = []; // For creating a descriptive summary
+
+                // Fetch the names of the attendees in this specific registration
+                $sql_attendees = "SELECT attendee_id, CONCAT(first_name, ' ', surname) AS full_name FROM attendees WHERE eventreg_id = ?";
+                $stmt_attendees = $pdo->prepare($sql_attendees);
+                $stmt_attendees->execute([$package['registration_id']]);
+                $attendee_names_map = $stmt_attendees->fetchAll(PDO::FETCH_KEY_PAIR);
+                
+                // Loop through the selections to calculate total and build summary
+                foreach($package['details'] as $sub_event_id => $attendee_ids) {
+                    $cost = $sub_event_details_map[$sub_event_id]['cost'] ?? 0;
+                    $sub_event_name = $sub_event_details_map[$sub_event_id]['sub_event_name'] ?? 'Unknown Sub-Event';
+                    
+                    $attendee_names_for_this_sub = [];
+                    foreach ($attendee_ids as $attendee_id) {
+                        $addon_total += $cost;
+                        $attendee_names_for_this_sub[] = $attendee_names_map[$attendee_id] ?? 'Unknown Attendee';
+                    }
+                    // Create a nice summary line, e.g., "Steak Night (Josh Boothman)"
+                    $addon_details_display[] = htmlspecialchars($sub_event_name) . ' (' . implode(', ', $attendee_names_for_this_sub) . ')';
+                }
+
+                $cart_items[$key] = [
+                    'type' => 'sub_event_addon',
+                    'name' => 'Sub-Event Add-on',
+                    'options' => 'For registration #' . $package['registration_id'],
+                    'details' => implode('<br>', $addon_details_display), // Use our new summary
+                    'subtotal' => $addon_total
+                ];
+                $cart_total += $addon_total;
+            }
+        }
+
     } catch (PDOException $e) {
         $error_message = "Error fetching cart details: " . $e->getMessage();
     }
@@ -187,13 +235,18 @@ require_once __DIR__ . '/../templates/header.php';
                                         <img src="https://placehold.co/100x100/EBF5FB/17202A?text=Booking" class="img-fluid rounded" alt="Campsite Booking">
                                     <?php elseif ($item['type'] === 'registration'): ?>
                                         <img src="https://placehold.co/100x100/D4EDDA/155724?text=Rego" class="img-fluid rounded" alt="Event Registration">
+                                    <?php elseif ($item['type'] === 'sub_event_addon'): ?>
+                                        <img src="https://placehold.co/100x100/FFF3CD/856404?text=Add-on" class="img-fluid rounded" alt="Sub-Event Add-on">
+
                                     <?php endif; ?>
                                 </td>
                                 <td>
                                     <strong><?= htmlspecialchars($item['name']) ?></strong><br>
                                     <small class="text-muted"><?= $item['options'] ?? '' ?></small>
-                                    <?php if(isset($item['details'])): ?>
-                                        <br><small class="text-muted"><?= $item['details'] ?></small>
+                                    <?php if(!empty($item['details'])): ?>
+                                        <div class="mt-2" style="font-size: 0.8rem;">
+                                            <?= $item['details'] // This is our new summary, no need for htmlspecialchars as we did it above ?>
+                                        </div>
                                     <?php endif; ?>
                                 </td>
                                 <td>$<?= htmlspecialchars(number_format($item['price'] ?? $item['subtotal'], 2)) ?></td>

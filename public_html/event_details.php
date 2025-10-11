@@ -1,9 +1,13 @@
 <?php 
+// ADD THIS LINE
+session_start();
+
 require_once '../config/db_config.php';
 
 $event = null;
 $sub_events = [];
 $error_message = '';
+$registration_id = null; // Initialize registration_id
 $event_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 
 if (!$event_id) {
@@ -31,6 +35,18 @@ if (!$event_id) {
     }
 }
 
+$is_registered = false;
+if (isset($_SESSION['user_id']) && $event_id) { // Also check if event_id is valid
+    $sql_check = "SELECT registration_id FROM eventregistrations WHERE user_id = :user_id AND event_id = :event_id";
+    $stmt_check = $pdo->prepare($sql_check);
+    $stmt_check->execute([':user_id' => $_SESSION['user_id'], ':event_id' => $event_id]);
+    $reg_id = $stmt_check->fetchColumn(); // Use a different variable name to avoid conflicts
+    if ($reg_id) {
+        $is_registered = true;
+        $registration_id = $reg_id; // Store the ID for use in the buttons
+    }
+}
+
 // Define the page title
 $page_title = $event ? htmlspecialchars($event['event_name']) : 'Event Not Found';
 
@@ -54,10 +70,15 @@ require_once __DIR__ . '/../templates/header.php';
                 <hr>
                 <p class="col-md-12 fs-4"><?= nl2br(htmlspecialchars($event['description'])) ?></p>
                 
-                <!-- New Registration Button -->
-                <a href="register_for_event.php?event_id=<?= $event['event_id'] ?>" class="btn btn-success btn-lg mt-3">
-                    Register for this Event
-                </a>
+                <?php if ($is_registered): ?>
+                    <a href="add_sub_events.php?registration_id=<?= $registration_id ?>" class="btn btn-info btn-lg mt-3">
+                        Add/Manage Sub-Events
+                    </a>
+                <?php else: ?>
+                    <a href="register_for_event.php?event_id=<?= $event['event_id'] ?>" class="btn btn-success btn-lg mt-3">
+                        Register for this Event
+                    </a>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -86,7 +107,15 @@ require_once __DIR__ . '/../templates/header.php';
                                     <td><?= date('g:i A, l, F j', strtotime($sub['date_time'])) ?></td>
                                     <td>$<?= htmlspecialchars(number_format($sub['cost'], 2)) ?></td>
                                     <td>
-                                        <button class="btn btn-outline-secondary disabled">Register (During Main Registration)</button>
+                                        <?php if ($is_registered): ?>
+                                            <a href="add_sub_events.php?registration_id=<?= $registration_id ?>" class="btn btn-info btn-sm">
+                                                Add to Registration
+                                            </a>
+                                        <?php else: ?>
+                                            <a href="register_for_event.php?event_id=<?= $event['event_id'] ?>" class="btn btn-secondary btn-sm disabled" aria-disabled="true">
+                                                Register for Main Event First
+                                            </a>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
